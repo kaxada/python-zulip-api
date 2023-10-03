@@ -47,34 +47,29 @@ class DefineHandler:
         if len(non_letters):
             return self.SYMBOLS_PRESENT_ERROR_MESSAGE
 
-        # No word was entered.
         if not to_define_lower:
             return self.EMPTY_WORD_REQUEST_ERROR_MESSAGE
-        else:
-            response = f"**{to_define}**:\n"
+        response = f"**{to_define}**:\n"
 
-            try:
-                # Use OwlBot API to fetch definition.
-                api_result = requests.get(self.DEFINITION_API_URL.format(to_define_lower))
-                # Convert API result from string to JSON format.
-                definitions = api_result.json()
-
-                # Could not fetch definitions for the given word.
-                if not definitions:
-                    response += self.REQUEST_ERROR_MESSAGE
-                else:  # Definitions available.
+        try:
+            # Use OwlBot API to fetch definition.
+            api_result = requests.get(self.DEFINITION_API_URL.format(to_define_lower))
+            if definitions := api_result.json():
                     # Show definitions line by line.
-                    for d in definitions:
-                        example = d["example"] if d["example"] else "*No example available.*"
-                        response += "\n" + "* (**{}**) {}\n&nbsp;&nbsp;{}".format(
-                            d["type"], d["definition"], html2text.html2text(example)
-                        )
+                for d in definitions:
+                    example = d["example"] if d["example"] else "*No example available.*"
+                    response += (
+                        "\n"
+                        + f'* (**{d["type"]}**) {d["definition"]}\n&nbsp;&nbsp;{html2text.html2text(example)}'
+                    )
 
-            except Exception:
+            else:
                 response += self.REQUEST_ERROR_MESSAGE
-                logging.exception("")
+        except Exception:
+            response += self.REQUEST_ERROR_MESSAGE
+            logging.exception("")
 
-            return response
+        return response
 
 
 handler_class = DefineHandler

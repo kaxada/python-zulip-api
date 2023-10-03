@@ -180,7 +180,9 @@ for inpath in force_include:
 
 pyi_files = set(files_dict["pyi"])
 python_files = [
-    fpath for fpath in files_dict["py"] if not fpath.endswith(".py") or fpath + "i" not in pyi_files
+    fpath
+    for fpath in files_dict["py"]
+    if not fpath.endswith(".py") or f"{fpath}i" not in pyi_files
 ]
 
 repo_python_files = OrderedDict(

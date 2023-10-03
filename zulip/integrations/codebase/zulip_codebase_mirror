@@ -39,7 +39,7 @@ client = zulip.Client(
     email=config.ZULIP_USER,
     site=config.ZULIP_SITE,
     api_key=config.ZULIP_API_KEY,
-    client="ZulipCodebase/" + VERSION,
+    client=f"ZulipCodebase/{VERSION}",
 )
 user_agent = "Codebase To Zulip Mirroring script (zulip-devel@googlegroups.com)"
 
@@ -124,12 +124,7 @@ def handle_event(event: Dict[str, Any]) -> None:
         else:
             if new_ref:
                 branch = f"new branch {branch}"
-            content = "{} pushed {} commit(s) to {} in project {}:\n\n".format(
-                actor_name,
-                num_commits,
-                branch,
-                project,
-            )
+            content = f"{actor_name} pushed {num_commits} commit(s) to {branch} in project {project}:\n\n"
             for commit in raw_props.get("commits"):
                 ref = commit.get("ref")
                 url = make_url(f"projects/{project_link}/repositories/{repo_link}/commit/{ref}")
@@ -164,19 +159,11 @@ def handle_event(event: Dict[str, Any]) -> None:
 
         content = ""
         if body is not None and len(body) > 0:
-            content = "{} added a comment to ticket [#{}]({}):\n\n~~~ quote\n{}\n\n".format(
-                actor_name,
-                num,
-                url,
-                body,
-            )
+            content = f"{actor_name} added a comment to ticket [#{num}]({url}):\n\n~~~ quote\n{body}\n\n"
 
         if "status_id" in changes:
             status_change = changes.get("status_id")
-            content += "Status changed from **{}** to **{}**\n\n".format(
-                status_change[0],
-                status_change[1],
-            )
+            content += f"Status changed from **{status_change[0]}** to **{status_change[1]}**\n\n"
     elif event_type == "ticketing_milestone":
         stream = config.ZULIP_TICKETS_STREAM_NAME
 
@@ -190,21 +177,13 @@ def handle_event(event: Dict[str, Any]) -> None:
         stream = config.ZULIP_COMMITS_STREAM_NAME
 
         comment = raw_props.get("content")
-        commit = raw_props.get("commit_ref")
-
-        # If there's a commit id, it's a comment to a commit
-        if commit:
+        if commit := raw_props.get("commit_ref"):
             repo_link = raw_props.get("repository_permalink")
 
             url = make_url(f"projects/{project_link}/repositories/{repo_link}/commit/{commit}")
 
             subject = f"{actor_name} commented on {commit}"
-            content = "{} commented on [{}]({}):\n\n~~~ quote\n{}".format(
-                actor_name,
-                commit,
-                url,
-                comment,
-            )
+            content = f"{actor_name} commented on [{commit}]({url}):\n\n~~~ quote\n{comment}"
         else:
             # Otherwise, this is a Discussion item, and handle it
             subj = raw_props.get("subject")
@@ -233,21 +212,12 @@ def handle_event(event: Dict[str, Any]) -> None:
         )
         end_ref_url = make_url(f"projects/{project_link}/repositories/{repo_link}/commit/{end_ref}")
         between_url = make_url(
-            "projects/%s/repositories/%s/compare/%s...%s"
-            % (project_link, repo_link, start_ref, end_ref)
+            f"projects/{project_link}/repositories/{repo_link}/compare/{start_ref}...{end_ref}"
         )
 
         subject = f"Deployment to {environment}"
 
-        content = "{} deployed [{}]({}) [through]({}) [{}]({}) to the **{}** environment.".format(
-            actor_name,
-            start_ref,
-            start_ref_url,
-            between_url,
-            end_ref,
-            end_ref_url,
-            environment,
-        )
+        content = f"{actor_name} deployed [{start_ref}]({start_ref_url}) [through]({between_url}) [{end_ref}]({end_ref_url}) to the **{environment}** environment."
         if servers is not None:
             content += "\n\nServers deployed to: %s" % (
                 ", ".join(f"`{server}`" for server in servers)
@@ -268,15 +238,15 @@ def handle_event(event: Dict[str, Any]) -> None:
 
     if subject and content:
         if len(subject) > 60:
-            subject = subject[:57].rstrip() + "..."
+            subject = f"{subject[:57].rstrip()}..."
 
         res = client.send_message(
             {"type": "stream", "to": stream, "subject": subject, "content": content}
         )
         if res["result"] == "success":
-            logging.info("Successfully sent Zulip with id: {}".format(res["id"]))
+            logging.info(f'Successfully sent Zulip with id: {res["id"]}')
         else:
-            logging.warn("Failed to send Zulip: {} {}".format(res["result"], res["msg"]))
+            logging.warn(f'Failed to send Zulip: {res["result"]} {res["msg"]}')
 
 
 # the main run loop for this mirror script

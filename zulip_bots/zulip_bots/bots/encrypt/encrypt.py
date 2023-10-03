@@ -41,8 +41,7 @@ class EncryptHandler:
     def get_bot_encrypt_response(self, message: Dict[str, str]) -> str:
         original_content = message["content"]
         temp_content = encrypt(original_content)
-        send_content = "Encrypted/Decrypted text: " + temp_content
-        return send_content
+        return f"Encrypted/Decrypted text: {temp_content}"
 
 
 handler_class = EncryptHandler

@@ -72,7 +72,7 @@ def get_bot_converter_response(message: Dict[str, str], bot_handler: BotHandler)
             exponent = 0
 
             if not is_float(number):
-                results.append("`" + number + "` is not a valid number. " + utils.QUICK_HELP)
+                results.append(f"`{number}` is not a valid number. {utils.QUICK_HELP}")
                 continue
 
             # cannot reassign "number" as a float after using as string, so changed name
@@ -91,9 +91,9 @@ def get_bot_converter_response(message: Dict[str, str], bot_handler: BotHandler)
             ut_to_std = utils.UNITS.get(unit_to, [])  # type: List[Any]
 
             if not uf_to_std:
-                results.append("`" + unit_from + "` is not a valid unit. " + utils.QUICK_HELP)
+                results.append(f"`{unit_from}` is not a valid unit. {utils.QUICK_HELP}")
             if not ut_to_std:
-                results.append("`" + unit_to + "` is not a valid unit." + utils.QUICK_HELP)
+                results.append(f"`{unit_to}` is not a valid unit.{utils.QUICK_HELP}")
             if not uf_to_std or not ut_to_std:
                 continue
 
@@ -101,13 +101,7 @@ def get_bot_converter_response(message: Dict[str, str], bot_handler: BotHandler)
             if uf_to_std[2] != ut_to_std[2]:
                 unit_from = unit_from.capitalize() if uf_to_std[2] == "kelvin" else unit_from
                 results.append(
-                    "`"
-                    + unit_to.capitalize()
-                    + "` and `"
-                    + unit_from
-                    + "`"
-                    + " are not from the same category. "
-                    + utils.QUICK_HELP
+                    f"`{unit_to.capitalize()}` and `{unit_from}` are not from the same category. {utils.QUICK_HELP}"
                 )
                 continue
 
@@ -124,19 +118,18 @@ def get_bot_converter_response(message: Dict[str, str], bot_handler: BotHandler)
             number_res = round_to(number_res, 7)
 
             results.append(
-                "{} {} = {} {}".format(
-                    number, words[convert_index + 2], number_res, words[convert_index + 3]
-                )
+                f"{number} {words[convert_index + 2]} = {number_res} {words[convert_index + 3]}"
             )
 
         else:
-            results.append("Too few arguments given. " + utils.QUICK_HELP)
+            results.append(f"Too few arguments given. {utils.QUICK_HELP}")
 
-    new_content = ""
-    for idx, result in enumerate(results, 1):
-        new_content += ((str(idx) + ". conversion: ") if len(results) > 1 else "") + result + "\n"
-
-    return new_content
+    return "".join(
+        (f"{str(idx)}. conversion: " if len(results) > 1 else "")
+        + result
+        + "\n"
+        for idx, result in enumerate(results, 1)
+    )
 
 
 handler_class = ConverterHandler

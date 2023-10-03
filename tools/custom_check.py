@@ -12,9 +12,9 @@ whitespace_rules = [
     {"pattern": "\t", "strip": "\n", "description": "Fix tab-based whitespace"},
 ]  # type: List[Rule]
 
-markdown_whitespace_rules = list(
+markdown_whitespace_rules = [
     rule for rule in whitespace_rules if rule["pattern"] != r"\s+$"
-) + [
+] + [
     # Two spaces trailing a line with other content is okay--it's a markdown line break.
     # This rule finds one space trailing a non-space, three or more trailing spaces, and
     # spaces on an empty line.
@@ -112,22 +112,12 @@ bash_rules = RuleList(
             "description": "Fix shebang line with proper call to /usr/bin/env for Bash path, change -x|-e switches"
             " to set -x|set -e",
         },
-        *whitespace_rules[0:1],
+        *whitespace_rules[:1],
     ],
 )
 
 
-json_rules = RuleList(
-    langs=["json"],
-    # Here, we don't check tab-based whitespace, because the tab-based
-    # whitespace rule flags a lot of third-party JSON fixtures
-    # under zerver/webhooks that we want preserved verbatim.  So
-    # we just include the trailing whitespace rule and a modified
-    # version of the tab-based whitespace rule (we can't just use
-    # exclude in whitespace_rules, since we only want to ignore
-    # JSON files with tab-based whitespace, not webhook code).
-    rules=whitespace_rules[0:1],
-)
+json_rules = RuleList(langs=["json"], rules=whitespace_rules[:1])
 
 prose_style_rules = [
     {

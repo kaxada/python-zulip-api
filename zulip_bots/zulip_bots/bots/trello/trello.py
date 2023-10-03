@@ -60,15 +60,14 @@ class TrelloHandler:
             bot_reply = self.get_all_supported_commands()
         elif content == ["get-all-boards"]:
             bot_reply = self.get_all_boards()
+        elif content[0] == "get-all-cards":
+            bot_reply = self.get_all_cards(content)
+        elif content[0] == "get-all-checklists":
+            bot_reply = self.get_all_checklists(content)
+        elif content[0] == "get-all-lists":
+            bot_reply = self.get_all_lists(content)
         else:
-            if content[0] == "get-all-cards":
-                bot_reply = self.get_all_cards(content)
-            elif content[0] == "get-all-checklists":
-                bot_reply = self.get_all_checklists(content)
-            elif content[0] == "get-all-lists":
-                bot_reply = self.get_all_lists(content)
-            else:
-                bot_reply = "Command not supported"
+            bot_reply = "Command not supported"
 
         bot_handler.send_reply(message, bot_reply)
 
@@ -140,14 +139,12 @@ class TrelloHandler:
             checklists = checklists_response.json()
             bot_response = ["**Checklists:**"]
             for index, checklist in enumerate(checklists):
-                bot_response += ["{}. `{}`:".format(index + 1, checklist["name"])]
+                bot_response += [f'{index + 1}. `{checklist["name"]}`:']
 
                 if "checkItems" in checklist:
                     for item in checklist["checkItems"]:
                         bot_response += [
-                            " * [{}] {}".format(
-                                "X" if item["state"] == "complete" else "-", item["name"]
-                            )
+                            f' * [{"X" if item["state"] == "complete" else "-"}] {item["name"]}'
                         ]
 
         except (KeyError, ValueError, TypeError):
@@ -168,11 +165,11 @@ class TrelloHandler:
             bot_response = ["**Lists:**"]
 
             for index, _list in enumerate(lists):
-                bot_response += ["{}. {}".format(index + 1, _list["name"])]
+                bot_response += [f'{index + 1}. {_list["name"]}']
 
                 if "cards" in _list:
                     for card in _list["cards"]:
-                        bot_response += ["  * {}".format(card["name"])]
+                        bot_response += [f'  * {card["name"]}']
 
         except (KeyError, ValueError, TypeError):
             return RESPONSE_ERROR_MESSAGE

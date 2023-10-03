@@ -13,7 +13,7 @@ from zulip_bots.lib import (
 
 class FakeClient:
     def __init__(self, *args, **kwargs):
-        self.storage = dict()
+        self.storage = {}
 
     def get_profile(self):
         return dict(
@@ -236,9 +236,7 @@ class LibTest(TestCase):
         handler = ExternalBotHandler(
             client=client, root_dir=None, bot_details=None, bot_config_file=None
         )
-        message = {}
-        message["display_recipient"] = "some stream"
-        message["type"] = "stream"
+        message = {"display_recipient": "some stream", "type": "stream"}
         self.assertFalse(is_private_message_but_not_group_pm(message, handler))
         message["type"] = "private"
         message["display_recipient"] = [{"email": "a1@b.com"}]

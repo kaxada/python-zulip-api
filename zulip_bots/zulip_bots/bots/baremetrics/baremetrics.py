@@ -12,7 +12,7 @@ class BaremetricsHandler:
         self.config_info = bot_handler.get_config_info("baremetrics")
         self.api_key = self.config_info["api_key"]
 
-        self.auth_header = {"Authorization": "Bearer " + self.api_key}
+        self.auth_header = {"Authorization": f"Bearer {self.api_key}"}
 
         self.commands = [
             "help",

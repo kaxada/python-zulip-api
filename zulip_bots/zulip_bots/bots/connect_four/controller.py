@@ -39,19 +39,18 @@ class ConnectFourModel:
         return self.current_board[row][column] == 0
 
     def available_moves(self):
-        available_moves = []
         row = 0
-        for column in range(0, 7):
-            if self.current_board[row][column] == 0:
-                available_moves.append(column)
-
-        return available_moves
+        return [
+            column
+            for column in range(0, 7)
+            if self.current_board[row][column] == 0
+        ]
 
     def make_move(self, move, player_number, is_computer=False):
-        if player_number == 1:
-            token_number = -1
         if player_number == 0:
             token_number = 1
+        elif player_number == 1:
+            token_number = -1
         finding_move = True
         row = 5
         column = int(move.replace("move ", "")) - 1

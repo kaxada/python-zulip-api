@@ -14,12 +14,10 @@ parser.add_argument("--long-output", default="")
 parser.add_argument("--stream", default="nagios")
 parser.add_argument("--config", default="/etc/nagios3/zuliprc")
 for opt in ("type", "host", "service", "state"):
-    parser.add_argument("--" + opt)
+    parser.add_argument(f"--{opt}")
 opts = parser.parse_args()
 
-client = zulip.Client(
-    config_file=opts.config, client="ZulipNagios/" + VERSION
-)  # type: zulip.Client
+client = zulip.Client(config_file=opts.config, client=f"ZulipNagios/{VERSION}")
 
 msg = dict(type="stream", to=opts.stream)  # type: Dict[str, Any]
 
@@ -38,15 +36,13 @@ else:
     msg["subject"] = f"service {opts.service} on {opts.host}"
 
 if len(msg["subject"]) > 60:
-    msg["subject"] = msg["subject"][0:57].rstrip() + "..."
+    msg["subject"] = msg["subject"][:57].rstrip() + "..."
 # e.g. **PROBLEM**: service is CRITICAL
 msg["content"] = f"**{opts.type}**: {thing} is {opts.state}"
 
-# The "long output" can contain newlines represented by "\n" escape sequences.
-# The Nagios mail command uses /usr/bin/printf "%b" to expand these.
-# We will be more conservative and handle just this one escape sequence.
-output = (opts.output + "\n" + opts.long_output.replace(r"\n", "\n")).strip()
-if output:
+if output := (
+    opts.output + "\n" + opts.long_output.replace(r"\n", "\n")
+).strip():
     # Put any command output in a code block.
     msg["content"] += "\n\n~~~~\n" + output + "\n~~~~\n"
 

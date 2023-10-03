@@ -21,13 +21,12 @@ from zulip_botserver.input_parameters import parse_args
 
 
 def read_config_section(parser: configparser.ConfigParser, section: str) -> Dict[str, str]:
-    section_info = {
+    return {
         "email": parser.get(section, "email"),
         "key": parser.get(section, "key"),
         "site": parser.get(section, "site"),
         "token": parser.get(section, "token"),
     }
-    return section_info
 
 
 def read_config_from_env_vars(bot_name: Optional[str] = None) -> Dict[str, Dict[str, str]]:
@@ -42,23 +41,20 @@ def read_config_from_env_vars(bot_name: Optional[str] = None) -> Dict[str, Dict[
     # Load JSON-formatted environment variable; use OrderedDict to
     # preserve ordering on Python 3.6 and below.
     env_config = json.loads(json_config, object_pairs_hook=OrderedDict)
-    if bot_name is not None:
-        if bot_name in env_config:
-            bots_config[bot_name] = env_config[bot_name]
-        else:
-            # If the bot name provided via the command line does not
-            # exist in the configuration provided via the environment
-            # variable, use the first bot in the environment variable,
-            # with name updated to match, along with a warning.
-            first_bot_name = list(env_config.keys())[0]
-            bots_config[bot_name] = env_config[first_bot_name]
-            logging.warning(
-                "First bot name in the config list was changed from '{}' to '{}'".format(
-                    first_bot_name, bot_name
-                )
-            )
-    else:
+    if bot_name is None:
         bots_config = dict(env_config)
+    elif bot_name in env_config:
+        bots_config[bot_name] = env_config[bot_name]
+    else:
+        # If the bot name provided via the command line does not
+        # exist in the configuration provided via the environment
+        # variable, use the first bot in the environment variable,
+        # with name updated to match, along with a warning.
+        first_bot_name = list(env_config.keys())[0]
+        bots_config[bot_name] = env_config[first_bot_name]
+        logging.warning(
+            f"First bot name in the config list was changed from '{first_bot_name}' to '{bot_name}'"
+        )
     return bots_config
 
 
@@ -69,11 +65,10 @@ def read_config_file(
 
     bots_config = {}  # type: Dict[str, Dict[str, str]]
     if bot_name is None:
-        bots_config = {
-            section: read_config_section(parser, section) for section in parser.sections()
+        return {
+            section: read_config_section(parser, section)
+            for section in parser.sections()
         }
-        return bots_config
-
     logging.warning("Single bot mode is enabled")
     if len(parser.sections()) == 0:
         sys.exit(
@@ -90,9 +85,7 @@ def read_config_file(
         bot_section = parser.sections()[0]
         bots_config[bot_name] = read_config_section(parser, bot_section)
         logging.warning(
-            "First bot name in the config list was changed from '{}' to '{}'".format(
-                bot_section, bot_name
-            )
+            f"First bot name in the config list was changed from '{bot_section}' to '{bot_name}'"
         )
         ignored_sections = parser.sections()[1:]
 
@@ -187,15 +180,11 @@ def handle_bot() -> str:
             break
     else:
         raise BadRequest(
-            "Cannot find a bot with email {} in the Botserver "
-            "configuration file. Do the emails in your botserverrc "
-            "match the bot emails on the server?".format(event["bot_email"])
+            f'Cannot find a bot with email {event["bot_email"]} in the Botserver configuration file. Do the emails in your botserverrc match the bot emails on the server?'
         )
     if bot_config["token"] != event["token"]:
         raise Unauthorized(
-            "Request token does not match token found for bot {} in the "
-            "Botserver configuration file. Do the outgoing webhooks in "
-            "Zulip point to the right Botserver?".format(event["bot_email"])
+            f'Request token does not match token found for bot {event["bot_email"]} in the Botserver configuration file. Do the outgoing webhooks in Zulip point to the right Botserver?'
         )
     app.config.get("BOTS_LIB_MODULES", {})[bot]
     bot_handler = app.config.get("BOT_HANDLERS", {})[bot]

@@ -140,7 +140,7 @@ class RandomExponentialBackoff(CountingBackoff):
 
 
 def _default_client() -> str:
-    return "ZulipPython/" + __version__
+    return f"ZulipPython/{__version__}"
 
 
 def add_default_arguments(
@@ -417,9 +417,7 @@ class Client:
 
                 if insecure is None:
                     raise ZulipError(
-                        "The ZULIP_ALLOW_INSECURE environment "
-                        "variable is set to '{}', it must be "
-                        "'true' or 'false'".format(insecure_setting)
+                        f"The ZULIP_ALLOW_INSECURE environment variable is set to '{insecure_setting}', it must be 'true' or 'false'"
                     )
         if config_file is None:
             config_file = get_default_config_filename()
@@ -449,10 +447,7 @@ class Client:
 
                 if insecure is None:
                     raise ZulipError(
-                        "insecure is set to '{}', it must be "
-                        "'true' or 'false' if it is used in {}".format(
-                            insecure_setting, config_file
-                        )
+                        f"insecure is set to '{insecure_setting}', it must be 'true' or 'false' if it is used in {config_file}"
                     )
 
         elif None in (api_key, email):
@@ -464,17 +459,16 @@ class Client:
         self.api_key = api_key
         self.email = email
         self.verbose = verbose
-        if site is not None:
-            if site.startswith("localhost"):
-                site = "http://" + site
-            elif not site.startswith("http"):
-                site = "https://" + site
-            # Remove trailing "/"s from site to simplify the below logic for adding "/api"
-            site = site.rstrip("/")
-            self.base_url = site
-        else:
+        if site is None:
             raise MissingURLError("Missing Zulip server URL; specify via --site or ~/.zuliprc.")
 
+        if site.startswith("localhost"):
+            site = f"http://{site}"
+        elif not site.startswith("http"):
+            site = f"https://{site}"
+        # Remove trailing "/"s from site to simplify the below logic for adding "/api"
+        site = site.rstrip("/")
+        self.base_url = site
         if not self.base_url.endswith("/api"):
             self.base_url += "/api"
         self.base_url += "/"
@@ -499,8 +493,7 @@ class Client:
         if client_cert is None:
             if client_cert_key is not None:
                 raise ConfigNotFoundError(
-                    "client cert key '%s' specified, but no client cert public part provided"
-                    % (client_cert_key,)
+                    f"client cert key '{client_cert_key}' specified, but no client cert public part provided"
                 )
         else:  # we have a client cert
             if not os.path.isfile(client_cert):
@@ -594,11 +587,7 @@ class Client:
         req_files = []
 
         for (key, val) in orig_request.items():
-            if isinstance(val, str) or isinstance(val, str):
-                request[key] = val
-            else:
-                request[key] = json.dumps(val)
-
+            request[key] = val if isinstance(val, (str, str)) else json.dumps(val)
         for f in files:
             req_files.append((f.name, f))
 
@@ -617,11 +606,7 @@ class Client:
             if self.verbose:
                 if not query_state["had_error_retry"]:
                     sys.stdout.write(
-                        "zulip API(%s): connection error%s -- retrying."
-                        % (
-                            url.split(API_VERSTRING, 2)[0],
-                            error_string,
-                        )
+                        f"zulip API({url.split(API_VERSTRING, 2)[0]}): connection error{error_string} -- retrying."
                     )
                     query_state["had_error_retry"] = True
                 else:
@@ -641,11 +626,7 @@ class Client:
 
         while True:
             try:
-                if method == "GET":
-                    kwarg = "params"
-                else:
-                    kwarg = "data"
-
+                kwarg = "params" if method == "GET" else "data"
                 kwargs = {kwarg: query_state["request"]}
 
                 if files:
@@ -679,16 +660,15 @@ class Client:
                     # When longpolling, we expect the timeout to fire,
                     # and the correct response is to just retry
                     continue
-                else:
-                    end_error_retry(False)
-                    raise
+                end_error_retry(False)
+                raise
             except requests.exceptions.ConnectionError:
                 if not self.has_connected:
                     # If we have never successfully connected to the server, don't
                     # go into retry logic, because the most likely scenario here is
                     # that somebody just hasn't started their server, or they passed
                     # in an invalid site.
-                    raise UnrecoverableNetworkError("cannot connect to server " + self.base_url)
+                    raise UnrecoverableNetworkError(f"cannot connect to server {self.base_url}")
 
                 if error_retry(""):
                     continue
@@ -699,10 +679,7 @@ class Client:
                 raise
 
             try:
-                if requests_json_is_function:
-                    json_result = res.json()
-                else:
-                    json_result = res.json
+                json_result = res.json() if requests_json_is_function else res.json
             except Exception:
                 json_result = None
 
@@ -726,11 +703,8 @@ class Client:
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
         if request is None:
-            request = dict()
-        marshalled_request = {}
-        for (k, v) in request.items():
-            if v is not None:
-                marshalled_request[k] = v
+            request = {}
+        marshalled_request = {k: v for k, v in request.items() if v is not None}
         versioned_url = API_VERSTRING + (url if url is not None else "")
         return self.do_api_query(
             marshalled_request,
@@ -964,7 +938,7 @@ class Client:
         {'result': 'success', 'msg': ''}
         """
         return self.call_endpoint(
-            url="messages/{}/reactions".format(reaction_data["message_id"]),
+            url=f'messages/{reaction_data["message_id"]}/reactions',
             method="POST",
             request=reaction_data,
         )
@@ -982,7 +956,7 @@ class Client:
         {'msg': '', 'result': 'success'}
         """
         return self.call_endpoint(
-            url="messages/{}/reactions".format(reaction_data["message_id"]),
+            url=f'messages/{reaction_data["message_id"]}/reactions',
             method="DELETE",
             request=reaction_data,
         )
@@ -1263,7 +1237,7 @@ class Client:
         """
 
         return self.call_endpoint(
-            url="streams/{}".format(stream_data["stream_id"]),
+            url=f'streams/{stream_data["stream_id"]}',
             method="PATCH",
             request=stream_data,
         )
@@ -1548,7 +1522,7 @@ class Client:
         {'description': 'Description successfully updated.', 'name': 'Name successfully updated.', 'result': 'success', 'msg': ''}
         """
         return self.call_endpoint(
-            url="user_groups/{}".format(group_data["group_id"]),
+            url=f'user_groups/{group_data["group_id"]}',
             method="PATCH",
             request=group_data,
         )

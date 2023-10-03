@@ -33,7 +33,7 @@ client = zulip.Client(
     email=config.ZULIP_USER,
     site=config.ZULIP_SITE,
     api_key=config.ZULIP_API_KEY,
-    client="ZulipTrac/" + VERSION,
+    client=f"ZulipTrac/{VERSION}",
 )
 
 
@@ -46,13 +46,11 @@ def markdown_block(desc: str) -> str:
 
 
 def truncate(string: str, length: int) -> str:
-    if len(string) <= length:
-        return string
-    return string[: length - 3] + "..."
+    return string if len(string) <= length else f"{string[:length - 3]}..."
 
 
 def trac_subject(ticket: Any) -> str:
-    return truncate("#{}: {}".format(ticket.id, ticket.values.get("summary")), 60)
+    return truncate(f'#{ticket.id}: {ticket.values.get("summary")}', 60)
 
 
 def send_update(ticket: Any, content: str) -> None:
@@ -71,17 +69,12 @@ class ZulipPlugin(Component):
 
     def ticket_created(self, ticket: Any) -> None:
         """Called when a ticket is created."""
-        content = "{} created {} in component **{}**, priority **{}**:\n".format(
-            ticket.values.get("reporter"),
-            markdown_ticket_url(ticket),
-            ticket.values.get("component"),
-            ticket.values.get("priority"),
-        )
+        content = f'{ticket.values.get("reporter")} created {markdown_ticket_url(ticket)} in component **{ticket.values.get("component")}**, priority **{ticket.values.get("priority")}**:\n'
         # Include the full subject if it will be truncated
         if len(ticket.values.get("summary")) > 60:
-            content += "**{}**\n".format(ticket.values.get("summary"))
+            content += f'**{ticket.values.get("summary")}**\n'
         if ticket.values.get("description") != "":
-            content += "{}".format(markdown_block(ticket.values.get("description")))
+            content += f'{markdown_block(ticket.values.get("description"))}'
         send_update(ticket, content)
 
     def ticket_changed(
@@ -106,11 +99,7 @@ class ZulipPlugin(Component):
         field_changes = []
         for key, value in old_values.items():
             if key == "description":
-                content += "- Changed {} from {}\n\nto {}".format(
-                    key,
-                    markdown_block(value),
-                    markdown_block(ticket.values.get(key)),
-                )
+                content += f"- Changed {key} from {markdown_block(value)}\n\nto {markdown_block(ticket.values.get(key))}"
             elif old_values.get(key) == "":
                 field_changes.append(f"{key}: => **{ticket.values.get(key)}**")
             elif ticket.values.get(key) == "":

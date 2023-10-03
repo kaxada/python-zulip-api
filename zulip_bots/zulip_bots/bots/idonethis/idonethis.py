@@ -36,7 +36,7 @@ def make_API_request(
     body: Optional[Dict[str, str]] = None,
     params: Optional[Dict[str, str]] = None,
 ) -> Any:
-    headers = {"Authorization": "Token " + api_key}
+    headers = {"Authorization": f"Token {api_key}"}
     if method == "GET":
         r = requests.get(API_BASE_URL + endpoint, headers=headers, params=params)
     elif method == "POST":
@@ -48,10 +48,12 @@ def make_API_request(
         and "error" in r.json()
         and r.json()["error"] == "Invalid API Authentication"
     ):
-        logging.error("Error authenticating, please check key " + str(r.url))
+        logging.error(f"Error authenticating, please check key {str(r.url)}")
         raise AuthenticationException()
     else:
-        logging.error("Error make API request, code " + str(r.status_code) + ". json: " + r.json())
+        logging.error(
+            f"Error make API request, code {str(r.status_code)}. json: {r.json()}"
+        )
         raise UnspecifiedProblemException()
 
 
@@ -151,7 +153,7 @@ More information in my help"""
 
     team_id = get_team_hash(team)
     data = api_create_entry(new_message, team_id)
-    return "Great work :thumbs_up:. New entry `{}` created!".format(data["body_formatted"])
+    return f'Great work :thumbs_up:. New entry `{data["body_formatted"]}` created!'
 
 
 class IDoneThisHandler:
@@ -188,7 +190,9 @@ class IDoneThisHandler:
     def usage(self) -> str:
         default_team_message = ""
         if default_team:
-            default_team_message = "The default team is currently set as `" + default_team + "`."
+            default_team_message = (
+                f"The default team is currently set as `{default_team}`."
+            )
         else:
             default_team_message = "There is currently no default team set up :frowning:."
         return (
@@ -223,30 +227,30 @@ Below are some of the commands you can use, and what they do.
         reply = ""
         try:
             command = " ".join(message_content[:2])
-            if command in ["teams list", "list teams"]:
+            if command in {"teams list", "list teams"}:
                 reply = list_teams()
-            elif command in ["teams info", "team info"]:
+            elif command in {"teams info", "team info"}:
                 if len(message_content) > 2:
                     reply = team_info(" ".join(message_content[2:]))
                 else:
                     raise UnknownCommandSyntax(
                         "You must specify the team in which you request information from."
                     )
-            elif command in ["entries list", "list entries"]:
+            elif command in {"entries list", "list entries"}:
                 reply = entries_list(" ".join(message_content[2:]))
-            elif command in ["entries create", "create entry", "new entry", "i did"]:
+            elif command in {"entries create", "create entry", "new entry", "i did"}:
                 reply = create_entry(" ".join(message_content[2:]))
-            elif command in ["help"]:
+            elif command in {"help"}:
                 reply = self.usage()
             else:
                 raise UnknownCommandSyntax("I can't understand the command you sent me :confused: ")
         except TeamNotFoundException as e:
-            reply = (
-                "Sorry, it doesn't seem as if I can find a team named `" + e.team + "` :frowning:."
-            )
+            reply = f"Sorry, it doesn't seem as if I can find a team named `{e.team}` :frowning:."
         except AuthenticationException:
-            reply = "I can't currently authenticate with idonethis. "
-            reply += "Can you check that your API key is correct? For more information see my documentation."
+            reply = (
+                "I can't currently authenticate with idonethis. "
+                + "Can you check that your API key is correct? For more information see my documentation."
+            )
         except UnknownCommandSyntax as e:
             reply = (
                 "Sorry, I don't understand what your trying to say. Use `@mention help` to see my help. "
@@ -254,7 +258,7 @@ Below are some of the commands you can use, and what they do.
             )
         except Exception as e:  # catches UnspecifiedProblemException, and other problems
             reply = "Oh dear, I'm having problems processing your request right now. Perhaps you could try again later :grinning:"
-            logging.error("Exception caught: " + str(e))
+            logging.error(f"Exception caught: {str(e)}")
         return reply
 
 

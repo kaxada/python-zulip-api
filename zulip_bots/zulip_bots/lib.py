@@ -41,12 +41,7 @@ def zulip_env_vars_are_present() -> bool:
         return False
     if os.environ.get("ZULIP_API_KEY") is None:
         return False
-    if os.environ.get("ZULIP_SITE") is None:
-        return False
-
-    # If none of the absolutely critical env vars are
-    # missing, we can proceed without a config file.
-    return True
+    return os.environ.get("ZULIP_SITE") is not None
 
 
 class RateLimit:
@@ -59,12 +54,10 @@ class RateLimit:
 
     def is_legal(self) -> bool:
         self.message_list.append(time.time())
-        if len(self.message_list) > self.message_limit:
-            self.message_list.pop(0)
-            time_diff = self.message_list[-1] - self.message_list[0]
-            return time_diff >= self.interval_limit
-        else:
+        if len(self.message_list) <= self.message_limit:
             return True
+        self.message_list.pop(0)
+        return self.message_list[-1] - self.message_list[0] >= self.interval_limit
 
     def show_error_and_exit(self) -> None:
         logging.error(self.error_message)
@@ -75,7 +68,7 @@ class BotIdentity:
     def __init__(self, name: str, email: str) -> None:
         self.name = name
         self.email = email
-        self.mention = "@**" + name + "**"
+        self.mention = f"@**{name}**"
 
 
 class BotStorage(Protocol):
@@ -107,13 +100,11 @@ class CachedStorage:
         self._dirty_keys.add(key)
 
     def get(self, key: str) -> Any:
-        # Unless the key is not found in the cache, the cached storage will not lookup the parent storage.
         if key in self._cache:
             return self._cache[key]
-        else:
-            value = self._parent_storage.get(key)
-            self._cache[key] = value
-            return value
+        value = self._parent_storage.get(key)
+        self._cache[key] = value
+        return value
 
     def flush(self) -> None:
         # Flush the data to the parent storage.
@@ -128,10 +119,7 @@ class CachedStorage:
         self._parent_storage.put(key, self._cache[key])
 
     def contains(self, key: str) -> bool:
-        if key in self._cache:
-            return True
-        else:
-            return self._parent_storage.contains(key)
+        return True if key in self._cache else self._parent_storage.contains(key)
 
 
 class StateHandler:
@@ -139,7 +127,7 @@ class StateHandler:
         self._client = client
         self.marshal = lambda obj: json.dumps(obj)
         self.demarshal = lambda obj: json.loads(obj)
-        self.state_: Dict[str, Any] = dict()
+        self.state_: Dict[str, Any] = {}
 
     def put(self, key: str, value: Any) -> None:
         self.state_[key] = self.marshal(value)
@@ -153,7 +141,7 @@ class StateHandler:
 
         response = self._client.get_storage({"keys": [key]})
         if response["result"] != "success":
-            raise KeyError("key not found: " + key)
+            raise KeyError(f"key not found: {key}")
 
         marshalled_value = response["storage"][key]
         self.state_[key] = marshalled_value
@@ -280,7 +268,7 @@ class ExternalBotHandler:
             self._rate_limit.show_error_and_exit()
         resp = self._client.send_message(message)
         if resp.get("result") == "error":
-            print("ERROR!: " + str(resp))
+            print(f"ERROR!: {str(resp)}")
         return resp
 
     def send_reply(
@@ -317,7 +305,7 @@ class ExternalBotHandler:
         else:
             if self.bot_config_file is None:
                 if optional:
-                    return dict()
+                    return {}
 
                 # Well written bots should catch this exception
                 # and provide nice error messages with instructions
@@ -375,8 +363,7 @@ class ExternalBotHandler:
             return open(abs_filepath)
         else:
             raise PermissionError(
-                'Cannot open file "{}". Bots may only access '
-                "files in their local directory.".format(abs_filepath)
+                f'Cannot open file "{abs_filepath}". Bots may only access files in their local directory.'
             )
 
     def quit(self, message: str = "") -> None:
@@ -389,17 +376,16 @@ def extract_query_without_mention(message: Dict[str, Any], client: BotHandler) -
     the stripped message with the bot's @mention removed.  Otherwise, it returns None.
     """
     content = message["content"]
-    mention = "@**" + client.full_name + "**"
+    mention = f"@**{client.full_name}**"
     extended_mention_regex = re.compile(r"^@\*\*.*\|" + str(client.user_id) + r"\*\*")
-    extended_mention_match = extended_mention_regex.match(content)
-
-    if extended_mention_match:
+    if extended_mention_match := extended_mention_regex.match(content):
         return content[extended_mention_match.end() :].lstrip()
 
-    if content.startswith(mention):
-        return content[len(mention) :].lstrip()
-
-    return None
+    return (
+        content[len(mention) :].lstrip()
+        if content.startswith(mention)
+        else None
+    )
 
 
 def is_private_message_but_not_group_pm(
@@ -412,7 +398,7 @@ def is_private_message_but_not_group_pm(
     zulip/zulip project, so refactor with care.  See the comments in
     extract_query_without_mention.
     """
-    if not message_dict["type"] == "private":
+    if message_dict["type"] != "private":
         return False
     is_message_from_self = current_user.user_id == message_dict["sender_id"]
     recipients = [

@@ -49,11 +49,10 @@ def get_recipient_id(
         return (None, error)
 
     recipient_id = find_recipient_id(users, recipient_name)
-    if recipient_id is None:
-        error = "No user found. Make sure you typed it correctly."
-        return (None, error)
-    else:
+    if recipient_id is not None:
         return (recipient_id, None)
+    error = "No user found. Make sure you typed it correctly."
+    return (None, error)
 
 
 # This handles the message sending work.
@@ -83,11 +82,10 @@ def get_flock_response(content: str, config: Dict[str, str]) -> str:
 
 def get_flock_bot_response(content: str, config: Dict[str, str]) -> None:
     content = content.strip()
-    if content == "" or content == "help":
+    if content in {"", "help"}:
         return help_message
     else:
-        result = get_flock_response(content, config)
-        return result
+        return get_flock_response(content, config)
 
 
 class FlockHandler:

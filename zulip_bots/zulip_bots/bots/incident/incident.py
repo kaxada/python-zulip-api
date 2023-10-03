@@ -85,20 +85,19 @@ def generate_ticket_id(storage: Any) -> str:
     except (KeyError):
         incident_num = 0
     incident_num += 1
-    incident_num = incident_num % (1000)
+    incident_num %= 1000
     storage.put("ticket_id", incident_num)
-    ticket_id = "TICKET%04d" % (incident_num,)
-    return ticket_id
+    return "TICKET%04d" % (incident_num,)
 
 
 def format_incident_for_widget(ticket_id: str, incident: Dict[str, Any]) -> str:
     widget_type = "zform"
 
-    heading = ticket_id + ": " + incident
+    heading = f"{ticket_id}: {incident}"
 
     def get_choice(code: str) -> Dict[str, str]:
         answer = ANSWERS[code]
-        reply = "answer " + ticket_id + " " + code
+        reply = f"answer {ticket_id} {code}"
 
         return dict(
             type="multiple_choice",
@@ -133,7 +132,7 @@ def format_incident_for_markdown(ticket_id: str, incident: Dict[str, Any]) -> st
     )
     how_to_respond = f"""**reply**: answer {ticket_id} <code>"""
 
-    content = """
+    return """
 Incident: {incident}
 Q: {question}
 
@@ -144,7 +143,6 @@ Q: {question}
         how_to_respond=how_to_respond,
         incident=incident,
     )
-    return content
 
 
 handler_class = IncidentHandler

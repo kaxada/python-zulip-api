@@ -70,24 +70,16 @@ class YodaSpeakHandler:
             raise ApiKeyError
         if response.status_code == 503:
             raise ServiceUnavailableError
-        else:
-            error_message = response.json()["message"]
-            logging.error(error_message)
-            error_code = response.status_code
-            error_message = (
-                error_message
-                + "Error code: "
-                + str(error_code)
-                + " Did you follow the instructions in the `readme.md` file?"
-            )
-            return error_message
+        error_message = response.json()["message"]
+        logging.error(error_message)
+        error_code = response.status_code
+        error_message = f"{error_message}Error code: {error_code} Did you follow the instructions in the `readme.md` file?"
+        return error_message
 
     def format_input(self, original_content: str) -> str:
         # gets rid of whitespace around the edges, so that they aren't a problem in the future
         message_content = original_content.strip()
-        # replaces all spaces with '+' to be in the format the api requires
-        sentence = message_content.replace(" ", "+")
-        return sentence
+        return message_content.replace(" ", "+")
 
     def handle_input(self, message: Dict[str, str], bot_handler: BotHandler) -> None:
         original_content = message["content"]
@@ -124,10 +116,7 @@ class YodaSpeakHandler:
     def is_help(self, original_content: str) -> bool:
         # gets rid of whitespace around the edges, so that they aren't a problem in the future
         message_content = original_content.strip()
-        if message_content == "help":
-            return True
-        else:
-            return False
+        return message_content == "help"
 
 
 handler_class = YodaSpeakHandler

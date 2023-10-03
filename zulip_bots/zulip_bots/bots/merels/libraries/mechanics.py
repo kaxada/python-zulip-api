@@ -56,15 +56,15 @@ def is_jump(vpos_before, hpos_before, vpos_after, hpos_after):
 
     # If the man is in outer square, the distance must be 3 or 1
     if [vpos_before, hpos_before] in constants.OUTER_SQUARE:
-        return not (distance == 3 or distance == 1)
+        return distance not in [3, 1]
 
     # If the man is in middle square, the distance must be 2 or 1
     if [vpos_before, hpos_before] in constants.MIDDLE_SQUARE:
-        return not (distance == 2 or distance == 1)
+        return distance not in [2, 1]
 
     # If the man is in inner square, the distance must be only 1
     if [vpos_before, hpos_before] in constants.INNER_SQUARE:
-        return not (distance == 1)
+        return distance != 1
 
 
 def get_hills_numbers(grid):
@@ -259,12 +259,7 @@ def get_phase_number(grid, turn, x_pieces_possessed_not_on_grid, o_pieces_posses
         # Placing pieces
         return 1
     else:
-        if get_piece("X", grid) <= 3 or get_piece("O", grid) <= 3:
-            # Flying
-            return 3
-        else:
-            # Moving pieces
-            return 2
+        return 3 if get_piece("X", grid) <= 3 or get_piece("O", grid) <= 3 else 2
 
 
 def create_room(topic_name, merels_storage):
@@ -276,17 +271,13 @@ def create_room(topic_name, merels_storage):
     """
     merels = database.MerelsStorage(topic_name, merels_storage)
 
-    if merels.create_new_game(topic_name):
-        response = ""
-        response += f"A room has been created in {topic_name}. Starting game now.\n"
-        response += display_game(topic_name, merels_storage)
+    if not merels.create_new_game(topic_name):
+        return f"Failed: Cannot create an already existing game in {topic_name}. Please finish the game first."
+    response = ""
+    response += f"A room has been created in {topic_name}. Starting game now.\n"
+    response += display_game(topic_name, merels_storage)
 
-        return response
-    else:
-        return (
-            "Failed: Cannot create an already existing game in {}. "
-            "Please finish the game first.".format(topic_name)
-        )
+    return response
 
 
 def display_game(topic_name, merels_storage):
@@ -303,11 +294,7 @@ def display_game(topic_name, merels_storage):
 
     response = ""
 
-    if data.take_mode == 1:
-        take = "Yes"
-    else:
-        take = "No"
-
+    take = "Yes" if data.take_mode == 1 else "No"
     response += interface.graph_grid(data.grid()) + "\n"
     response += """Phase {}. Take mode: {}.
 X taken: {}, O taken: {}.
@@ -364,9 +351,7 @@ def move_man(topic_name, p1, p2, merels_storage):
             data.hill_uid,
             data.take_mode,
         )
-        return "Moved a man from ({}, {}) -> ({}, {}) for {}.".format(
-            p1[0], p1[1], p2[0], p2[1], data.turn
-        )
+        return f"Moved a man from ({p1[0]}, {p1[1]}) -> ({p2[0]}, {p2[1]}) for {data.turn}."
     else:
         raise BadMoveException("Failed: That's not a legal move. Please try again.")
 
@@ -574,10 +559,9 @@ def can_take_mode(topic_name, merels_storage):
 
     updated_hill_uid = get_hills_numbers(updated_grid)
 
-    if current_hill_uid != updated_hill_uid and len(updated_hill_uid) >= len(current_hill_uid):
-        return True
-    else:
-        return False
+    return current_hill_uid != updated_hill_uid and len(
+        updated_hill_uid
+    ) >= len(current_hill_uid)
 
 
 def check_moves(turn, grid):
@@ -609,7 +593,4 @@ def can_make_any_move(topic_name, merels_storage):
     merels = database.MerelsStorage(topic_name, merels_storage)
     data = game_data.GameData(merels.get_game_data(topic_name))
 
-    if data.get_phase() != 1:
-        return check_moves(data.turn, data.grid())
-
-    return True
+    return check_moves(data.turn, data.grid()) if data.get_phase() != 1 else True

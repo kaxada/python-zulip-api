@@ -101,9 +101,7 @@ def get_credentials() -> client.Credentials:
         credential_path = os.path.join(HOME_DIR, "google-credentials.json")
 
         store = Storage(credential_path)
-        credentials = store.get()
-
-        return credentials
+        return store.get()
     except client.Error:
         logging.exception("Error while trying to open the `google-credentials.json` file.")
     except OSError:
@@ -176,7 +174,7 @@ def send_reminders() -> Optional[None]:
                 if start.hour == 0 and start.minute == 0:
                     line = f"{summary} is today."
                 else:
-                    line = "{} starts at {}".format(summary, start.strftime("%H:%M"))
+                    line = f'{summary} starts at {start.strftime("%H:%M")}'
                 print("Sending reminder:", line)
                 messages.append(line)
                 keys.add(key)
@@ -185,9 +183,9 @@ def send_reminders() -> Optional[None]:
         return
 
     if len(messages) == 1:
-        message = "Reminder: " + messages[0]
+        message = f"Reminder: {messages[0]}"
     else:
-        message = "Reminder:\n\n" + "\n".join("* " + m for m in messages)
+        message = "Reminder:\n\n" + "\n".join(f"* {m}" for m in messages)
 
     zulip_client.send_message(
         dict(type="private", to=options.zulip_email, sender=options.zulip_email, content=message)

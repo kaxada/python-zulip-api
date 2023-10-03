@@ -17,7 +17,7 @@ class MentionHandler:
 
     def check_access_token(self, bot_handler: BotHandler) -> None:
         test_query_header = {
-            "Authorization": "Bearer " + self.access_token,
+            "Authorization": f"Bearer {self.access_token}",
             "Accept-Version": "1.15",
         }
         test_query_response = requests.get(
@@ -60,17 +60,16 @@ class MentionHandler:
 
     def get_account_id(self) -> str:
         get_ac_id_header = {
-            "Authorization": "Bearer " + self.access_token,
+            "Authorization": f"Bearer {self.access_token}",
             "Accept-Version": "1.15",
         }
         response = requests.get("https://api.mention.net/api/accounts/me", headers=get_ac_id_header)
         data_json = response.json()
-        account_id = data_json["account"]["id"]
-        return account_id
+        return data_json["account"]["id"]
 
     def get_alert_id(self, keyword: str) -> str:
         create_alert_header = {
-            "Authorization": "Bearer " + self.access_token,
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
             "Accept-Version": "1.15",
         }
@@ -83,30 +82,24 @@ class MentionHandler:
         }  # type: Any
 
         response = requests.post(
-            "https://api.mention.net/api/accounts/" + self.account_id + "/alerts",
+            f"https://api.mention.net/api/accounts/{self.account_id}/alerts",
             data=create_alert_data,
             headers=create_alert_header,
         )
         data_json = response.json()
-        alert_id = data_json["alert"]["id"]
-        return alert_id
+        return data_json["alert"]["id"]
 
     def get_mentions(self, alert_id: str) -> List[Any]:
         get_mentions_header = {
-            "Authorization": "Bearer " + self.access_token,
+            "Authorization": f"Bearer {self.access_token}",
             "Accept-Version": "1.15",
         }
         response = requests.get(
-            "https://api.mention.net/api/accounts/"
-            + self.account_id
-            + "/alerts/"
-            + alert_id
-            + "/mentions",
+            f"https://api.mention.net/api/accounts/{self.account_id}/alerts/{alert_id}/mentions",
             headers=get_mentions_header,
         )
         data_json = response.json()
-        mentions = data_json["mentions"]
-        return mentions
+        return data_json["mentions"]
 
     def generate_response(self, keyword: str) -> str:
         if self.account_id == "":
@@ -124,7 +117,7 @@ class MentionHandler:
             # Usually triggered by no response or json parse error when account quota is finished.
             raise MentionNoResponseException()
 
-        reply = "The most recent mentions of `" + keyword + "` on the web are: \n"
+        reply = f"The most recent mentions of `{keyword}" + "` on the web are: \n"
         for mention in mentions:
             reply += "[{title}]({id})\n".format(title=mention["title"], id=mention["original_url"])
         return reply

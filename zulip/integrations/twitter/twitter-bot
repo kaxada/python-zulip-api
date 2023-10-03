@@ -181,23 +181,10 @@ elif opts.twitter_name:
     else:
         statuses = api.GetUserTimeline(screen_name=opts.twitter_name, since_id=since_id)
 
-if opts.excluded_terms:
-    excluded_terms = opts.excluded_terms.split(",")
-else:
-    excluded_terms = []
-
-if opts.excluded_users:
-    excluded_users = opts.excluded_users.split(",")
-else:
-    excluded_users = []
-
+excluded_terms = opts.excluded_terms.split(",") if opts.excluded_terms else []
+excluded_users = opts.excluded_users.split(",") if opts.excluded_users else []
 for status in statuses[::-1][: opts.limit_tweets]:
-    # Check if the tweet is from an excluded user
-    exclude = False
-    for user in excluded_users:
-        if user == status.user.screen_name:
-            exclude = True
-            break
+    exclude = any(user == status.user.screen_name for user in excluded_users)
     if exclude:
         continue  # Continue with the loop for the next tweet
 
@@ -244,7 +231,7 @@ for status in statuses[::-1][: opts.limit_tweets]:
 
     if ret["result"] == "error":
         # If sending failed (e.g. no such stream), abort and retry next time
-        print("Error sending message to zulip: %s" % ret["msg"])
+        print(f'Error sending message to zulip: {ret["msg"]}')
         break
     else:
         since_id = status.id

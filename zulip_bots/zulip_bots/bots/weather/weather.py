@@ -30,7 +30,8 @@ class WeatherHandler:
             """
 
     def handle_message(self, message: Dict[str, str], bot_handler: BotHandler) -> None:
-        help_content = """
+        if message["content"] in ["help", ""]:
+            help_content = """
             This bot returns weather info for specified city.
             You specify city in the following format:
             city, state/country
@@ -40,7 +41,6 @@ class WeatherHandler:
             @**Weather Bot** Portland, Me
             """.strip()
 
-        if (message["content"] == "help") or (message["content"] == ""):
             response = help_content
         else:
             api_params = dict(q=message["content"], APPID=self.api_key)

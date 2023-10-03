@@ -87,8 +87,7 @@ def parse_answer(query: str) -> Tuple[str, str]:
 
 def get_trivia_quiz() -> Dict[str, Any]:
     payload = get_trivia_payload()
-    quiz = get_quiz_from_payload(payload)
-    return quiz
+    return get_quiz_from_payload(payload)
 
 
 def get_trivia_payload() -> Dict[str, Any]:
@@ -104,8 +103,7 @@ def get_trivia_payload() -> Dict[str, Any]:
     if data.status_code != 200:
         raise NotAvailableException()
 
-    payload = data.json()
-    return payload
+    return data.json()
 
 
 def fix_quotes(s: str) -> Optional[str]:
@@ -126,19 +124,17 @@ def get_quiz_from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     letters = ["A", "B", "C", "D"]
     random.shuffle(letters)
     correct_letter = letters[0]
-    answers = dict()
-    answers[correct_letter] = result["correct_answer"]
+    answers = {correct_letter: result["correct_answer"]}
     for i in range(3):
         answers[letters[i + 1]] = result["incorrect_answers"][i]
     answers = {letter: fix_quotes(answer) for letter, answer in answers.items()}
-    quiz = dict(
+    return dict(
         question=fix_quotes(question),
         answers=answers,
         answered_options=[],
         pending=True,
         correct_letter=correct_letter,
-    )  # type: Dict[str, Any]
-    return quiz
+    )
 
 
 def generate_quiz_id(storage: Any) -> str:
@@ -147,10 +143,9 @@ def generate_quiz_id(storage: Any) -> str:
     except (KeyError, TypeError):
         quiz_num = 0
     quiz_num += 1
-    quiz_num = quiz_num % (1000)
+    quiz_num %= 1000
     storage.put("quiz_id", quiz_num)
-    quiz_id = "Q%03d" % (quiz_num,)
-    return quiz_id
+    return "Q%03d" % (quiz_num,)
 
 
 def format_quiz_for_widget(quiz_id: str, quiz: Dict[str, Any]) -> str:
@@ -158,11 +153,11 @@ def format_quiz_for_widget(quiz_id: str, quiz: Dict[str, Any]) -> str:
     question = quiz["question"]
     answers = quiz["answers"]
 
-    heading = quiz_id + ": " + question
+    heading = f"{quiz_id}: {question}"
 
     def get_choice(letter: str) -> Dict[str, str]:
         answer = answers[letter]
-        reply = "answer " + quiz_id + " " + letter
+        reply = f"answer {quiz_id} {letter}"
 
         return dict(
             type="multiple_choice",
@@ -199,7 +194,7 @@ def format_quiz_for_markdown(quiz_id: str, quiz: Dict[str, Any]) -> str:
     )
     how_to_respond = f"""**reply**: answer {quiz_id} <letter>"""
 
-    content = """
+    return """
 Q: {question}
 
 {answer_list}
@@ -208,7 +203,6 @@ Q: {question}
         answer_list=answer_list,
         how_to_respond=how_to_respond,
     )
-    return content
 
 
 def update_quiz(quiz: Dict[str, Any], quiz_id: str, bot_handler: BotHandler) -> None:
@@ -217,13 +211,13 @@ def update_quiz(quiz: Dict[str, Any], quiz_id: str, bot_handler: BotHandler) -> 
 
 def build_response(is_correct: bool, num_answers: int) -> str:
     if is_correct:
-        response = ":tada: **{answer}** is correct, {sender_name}!"
+        return ":tada: **{answer}** is correct, {sender_name}!"
     else:
-        if num_answers >= 3:
-            response = ":disappointed: WRONG, {sender_name}! The correct answer is **{answer}**."
-        else:
-            response = ":disappointed: WRONG, {sender_name}! {option} is not correct."
-    return response
+        return (
+            ":disappointed: WRONG, {sender_name}! The correct answer is **{answer}**."
+            if num_answers >= 3
+            else ":disappointed: WRONG, {sender_name}! {option} is not correct."
+        )
 
 
 def handle_answer(

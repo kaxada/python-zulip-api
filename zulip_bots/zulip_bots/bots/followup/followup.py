@@ -53,9 +53,7 @@ class FollowupHandler:
         original_content = message["content"]
         original_sender = message["sender_email"]
         temp_content = f"from {original_sender}: "
-        new_content = temp_content + original_content
-
-        return new_content
+        return temp_content + original_content
 
 
 handler_class = FollowupHandler

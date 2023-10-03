@@ -87,12 +87,7 @@ def get_xkcd_bot_response(message: Dict[str, str], quoted_name: str) -> str:
         logging.exception(f"XKCD server responded 404 when trying to fetch comic with id {command}")
         return f"Sorry, there is likely no xkcd comic strip with id: #{command}"
     else:
-        return "#{}: **{}**\n[{}]({})".format(
-            fetched["num"],
-            fetched["title"],
-            fetched["alt"],
-            fetched["img"],
-        )
+        return f'#{fetched["num"]}: **{fetched["title"]}**\n[{fetched["alt"]}]({fetched["img"]})'
 
 
 def fetch_xkcd_query(mode: int, comic_id: Optional[str] = None) -> Dict[str, str]:

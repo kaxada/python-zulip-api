@@ -40,7 +40,7 @@ the Python version this command is executed with."""
     )
     # The output has the format "Python 1.2.3"
     py_version_list = py_version_output.split()[1].split(".")
-    py_version = tuple(int(num) for num in py_version_list[0:2])
+    py_version = tuple(int(num) for num in py_version_list[:2])
     venv_name = f"zulip-api-py{py_version[0]}-venv"
 
     if py_version <= (3, 1) and (not options.force):
@@ -121,20 +121,20 @@ the Python version this command is executed with."""
     # it by setup().
     current_dir = os.path.dirname(os.path.abspath(__file__))
     bots_dir = os.path.join(current_dir, "..", "zulip_bots", "zulip_bots", "bots")
-    req_paths = glob.glob(bots_dir + "/*/requirements.txt")
+    req_paths = glob.glob(f"{bots_dir}/*/requirements.txt")
     for req_path in req_paths:
         path_split = req_path.split(os.path.sep)[-5:]
         relative_path = os.path.join(*path_split)
         install_dependencies(relative_path)
 
-    print(green + "Success!" + end_format)
+    print(f"{green}Success!{end_format}")
 
     activate_command = os.path.join(base_dir, venv_dir, venv_exec_dir, "activate")
     # We make the path look like a Unix path, because most Windows users
     # are likely to be running in a bash shell.
     activate_command = activate_command.replace(os.sep, "/")
     print("\nRun the following to enter into the virtualenv:\n")
-    print(bold + "  source " + activate_command + end_format + "\n")
+    print(f"{bold}  source {activate_command}{end_format}" + "\n")
 
 
 if __name__ == "__main__":

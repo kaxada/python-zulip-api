@@ -51,8 +51,7 @@ def matrix_login(matrix_client: Any, matrix_config: Dict[str, Any]) -> None:
 
 def matrix_join_room(matrix_client: Any, matrix_config: Dict[str, Any]) -> Any:
     try:
-        room = matrix_client.join_room(matrix_config["room_id"])
-        return room
+        return matrix_client.join_room(matrix_config["room_id"])
     except MatrixRequestError as exception:
         if exception.code == 403:
             raise Bridge_FatalMatrixException("Room ID/Alias in the wrong format")
@@ -114,7 +113,7 @@ def get_message_content_from_event(event: Dict[str, Any], no_noise: bool) -> Opt
         elif event["membership"] == "leave":
             content = ZULIP_MESSAGE_TEMPLATE.format(username=irc_nick, message="quit")
     elif event["type"] == "m.room.message":
-        if event["content"]["msgtype"] == "m.text" or event["content"]["msgtype"] == "m.emote":
+        if event["content"]["msgtype"] in ["m.text", "m.emote"]:
             content = ZULIP_MESSAGE_TEMPLATE.format(
                 username=irc_nick, message=event["content"]["body"]
             )
@@ -130,12 +129,9 @@ def shorten_irc_nick(nick: str) -> str:
     Check the list of IRC networks here:
     https://github.com/matrix-org/matrix-appservice-irc/wiki/Bridged-IRC-networks
     """
-    match = re.match(GENERAL_NETWORK_USERNAME_REGEX, nick)
-    if match:
+    if match := re.match(GENERAL_NETWORK_USERNAME_REGEX, nick):
         return match.group(1)
-    # For matrix users
-    match = re.match(MATRIX_USERNAME_REGEX, nick)
-    if match:
+    if match := re.match(MATRIX_USERNAME_REGEX, nick):
         return match.group(1)
     return nick
 
@@ -165,9 +161,12 @@ def check_zulip_message_validity(msg: Dict[str, Any], config: Dict[str, Any]) ->
     # We do this to identify the messages generated from Matrix -> Zulip
     # and we make sure we don't forward it again to the Matrix.
     not_from_zulip_bot = msg["sender_email"] != config["email"]
-    if is_a_stream and not_from_zulip_bot and in_the_specified_stream and at_the_specified_subject:
-        return True
-    return False
+    return (
+        is_a_stream
+        and not_from_zulip_bot
+        and in_the_specified_stream
+        and at_the_specified_subject
+    )
 
 
 def generate_parser() -> argparse.ArgumentParser:
@@ -297,9 +296,7 @@ def main() -> None:
             print(f"Wrote sample configuration to '{options.sample_config}'")
         else:
             print(
-                "Wrote sample configuration to '{}' using zuliprc file '{}'".format(
-                    options.sample_config, options.zuliprc
-                )
+                f"Wrote sample configuration to '{options.sample_config}' using zuliprc file '{options.zuliprc}'"
             )
         sys.exit(0)
     elif not options.config:

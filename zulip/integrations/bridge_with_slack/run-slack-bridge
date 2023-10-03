@@ -26,9 +26,12 @@ def check_zulip_message_validity(msg: Dict[str, Any], config: Dict[str, Any]) ->
     # We do this to identify the messages generated from Matrix -> Zulip
     # and we make sure we don't forward it again to the Matrix.
     not_from_zulip_bot = msg["sender_email"] != config["email"]
-    if is_a_stream and not_from_zulip_bot and in_the_specified_stream and at_the_specified_subject:
-        return True
-    return False
+    return (
+        is_a_stream
+        and not_from_zulip_bot
+        and in_the_specified_stream
+        and at_the_specified_subject
+    )
 
 
 class SlackBridge:
@@ -57,7 +60,7 @@ class SlackBridge:
         words = zulip_msg["content"].split(" ")
         for w in words:
             if w.startswith("@"):
-                zulip_msg["content"] = zulip_msg["content"].replace(w, "<" + w + ">")
+                zulip_msg["content"] = zulip_msg["content"].replace(w, f"<{w}>")
 
     def replace_slack_id_with_name(self, msg: Dict[str, Any]) -> None:
         words = msg["text"].split(" ")

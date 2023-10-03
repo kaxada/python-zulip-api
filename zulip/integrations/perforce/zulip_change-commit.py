@@ -14,6 +14,7 @@ For example:
 
 """
 
+
 import os
 import os.path
 import sys
@@ -36,8 +37,8 @@ client = zulip.Client(
     email=config.ZULIP_USER,
     site=config.ZULIP_SITE,
     api_key=config.ZULIP_API_KEY,
-    client="ZulipPerforce/" + __version__,
-)  # type: zulip.Client
+    client=f"ZulipPerforce/{__version__}",
+)
 
 try:
     changelist = int(sys.argv[1])  # type: int
@@ -73,10 +74,7 @@ if ignore_missing_stream:
         sys.exit(0)
 
 change = metadata["change"]
-p4web = None
-if hasattr(config, "P4_WEB"):
-    p4web = config.P4_WEB
-
+p4web = config.P4_WEB if hasattr(config, "P4_WEB") else None
 if p4web is not None:
     # linkify the change number
     change = "[{change}]({p4web}/{change}?ac=10)".format(p4web=p4web, change=change)

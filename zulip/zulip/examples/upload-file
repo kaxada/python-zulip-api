@@ -36,6 +36,6 @@ else:
 response = client.upload_file(file)
 
 try:
-    print("File URI: {}".format(response["uri"]))
+    print(f'File URI: {response["uri"]}')
 except KeyError:
     print(f"Error! API response was: {response}")

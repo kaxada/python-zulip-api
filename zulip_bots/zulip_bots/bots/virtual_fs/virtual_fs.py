@@ -151,31 +151,27 @@ def fs_command(fs: str, user: str, cmd: str) -> Tuple[str, Any]:
 
     f, arg_names = commands[cmd_name]
     partial_regexes = [REGEXES[a] for a in arg_names]
-    regex = " ".join(partial_regexes)
-    regex += "$"
-    m = re.match(regex, cmd_args)
-    if m:
+    regex = " ".join(partial_regexes) + "$"
+    if m := re.match(regex, cmd_args):
         return f(fs, user, *m.groups())
     elif cmd_name == "help":
         return fs, get_help()
     else:
-        return fs, "ERROR: " + syntax_help(cmd_name)
+        return fs, f"ERROR: {syntax_help(cmd_name)}"
 
 
 def syntax_help(cmd_name: str) -> str:
     commands = get_commands()
     f, arg_names = commands[cmd_name]
-    arg_syntax = " ".join("<" + a + ">" for a in arg_names)
-    if arg_syntax:
-        cmd = cmd_name + " " + arg_syntax
+    if arg_syntax := " ".join(f"<{a}>" for a in arg_names):
+        cmd = f"{cmd_name} {arg_syntax}"
     else:
         cmd = cmd_name
     return f"syntax: {cmd}"
 
 
 def fs_new() -> Dict[str, Any]:
-    fs = {"/": directory([]), "user_paths": dict()}
-    return fs
+    return {"/": directory([]), "user_paths": {}}
 
 
 def fs_help(fs: Dict[str, Any], user: str, cmd_name: str) -> Tuple[Dict[str, Any], Any]:
@@ -201,7 +197,7 @@ def fs_mkdir(fs: Dict[str, Any], user: str, fn: str) -> Tuple[Dict[str, Any], An
 
 
 def fs_ls(fs: Dict[str, Any], user: str, fn: str) -> Tuple[Dict[str, Any], Any]:
-    if fn == "." or fn == "":
+    if fn in {".", ""}:
         path = fs["user_paths"][user]
     else:
         path, msg = make_path(fs, user, fn)
@@ -215,7 +211,7 @@ def fs_ls(fs: Dict[str, Any], user: str, fn: str) -> Tuple[Dict[str, Any], Any]:
     fns = fs[path]["fns"]
     if not fns:
         return fs, "WARNING: directory is empty"
-    msg = "\n".join("* " + nice_path(fs, path) for path in sorted(fns))
+    msg = "\n".join(f"* {nice_path(fs, path)}" for path in sorted(fns))
     return fs, msg
 
 
@@ -258,7 +254,7 @@ def fs_rmdir(fs: Dict[str, Any], user: str, fn: str) -> Tuple[Dict[str, Any], An
     directory = get_directory(path)
     new_fs[directory]["fns"].remove(path)
     for sub_path in list(new_fs.keys()):
-        if sub_path.startswith(path + "/"):
+        if sub_path.startswith(f"{path}/"):
             new_fs.pop(sub_path)
     msg = "removed"
     return new_fs, msg
@@ -327,10 +323,10 @@ def make_path(fs: Dict[str, Any], user: str, leaf: str) -> List[str]:
 
 def nice_path(fs: Dict[str, Any], path: str) -> str:
     path_nice = path
-    slash = path.rfind("/")
     if path not in fs:
         return "ERROR: the current directory does not exist"
     if fs[path]["kind"] == "text":
+        slash = path.rfind("/")
         path_nice = f"{path[: slash + 1]}*{path[slash + 1 :]}*"
     elif path != "/":
         path_nice = f"{path}/"
@@ -339,10 +335,7 @@ def nice_path(fs: Dict[str, Any], path: str) -> str:
 
 def get_directory(path: str) -> str:
     slash = path.rfind("/")
-    if slash == 0:
-        return "/"
-    else:
-        return path[:slash]
+    return "/" if slash == 0 else path[:slash]
 
 
 def directory(fns: Union[Set[str], List[Any]]) -> Dict[str, Union[str, List[Any]]]:
@@ -354,9 +347,7 @@ def text_file(content: str) -> Dict[str, str]:
 
 
 def is_directory(fs: Dict[str, Any], fn: str) -> bool:
-    if fn not in fs:
-        return False
-    return fs[fn]["kind"] == "dir"
+    return False if fn not in fs else fs[fn]["kind"] == "dir"
 
 
 handler_class = VirtualFsHandler

@@ -57,13 +57,13 @@ def send_message(recipients: List[str], stream: str, subject: str, message: str)
     # Sanity check user data
     has_stream = stream != ""
     has_subject = subject != ""
-    if len(recipients) != 0 and has_stream:
+    if recipients and has_stream:
         click.echo("You cannot specify both a username and a stream/subject.")
         raise SystemExit(1)
-    if len(recipients) == 0 and (has_stream != has_subject):
+    if not recipients and has_stream != has_subject:
         click.echo("Stream messages must have a subject")
         raise SystemExit(1)
-    if len(recipients) == 0 and not has_stream:
+    if not recipients and not has_stream:
         click.echo("You must specify a stream/subject or at least one recipient.")
         raise SystemExit(1)
 
@@ -84,11 +84,10 @@ def send_message(recipients: List[str], stream: str, subject: str, message: str)
 
     if message_data["type"] == "stream":
         log.info(
-            'Sending message to stream "%s", subject "%s"... '
-            % (message_data["to"], message_data["subject"])
+            f'Sending message to stream "{message_data["to"]}", subject "{message_data["subject"]}"... '
         )
     else:
-        log.info("Sending message to %s... " % message_data["to"])
+        log.info(f'Sending message to {message_data["to"]}... ')
     response = client.send_message(message_data)
     log_exit(response)
 

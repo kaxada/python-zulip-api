@@ -66,27 +66,25 @@ def beat(message, topic_name, merels_storage):
         responses = ""
         command = match.group(1)
 
-        if command.lower() == "move":
-
-            p1 = [int(x) for x in match.group(2).split(",")]
-            p2 = [int(x) for x in match.group(3).split(",")]
-
-            if mechanics.get_take_status(topic_name, merels_storage) == 1:
-
-                raise BadMoveException("Take is required to proceed." " Please try again.\n")
-
-            responses += mechanics.move_man(topic_name, p1, p2, merels_storage) + "\n"
-            no_moves = after_event_checkup(responses, topic_name, merels_storage)
-
-            mechanics.update_hill_uid(topic_name, merels_storage)
-
-            responses += mechanics.display_game(topic_name, merels_storage) + "\n"
-
-            if no_moves != "":
-                same_player_move = no_moves
-
-        else:
+        if command.lower() != "move":
             return unknown_command()
+
+        p1 = [int(x) for x in match.group(2).split(",")]
+        p2 = [int(x) for x in match.group(3).split(",")]
+
+        if mechanics.get_take_status(topic_name, merels_storage) == 1:
+
+            raise BadMoveException("Take is required to proceed." " Please try again.\n")
+
+        responses += mechanics.move_man(topic_name, p1, p2, merels_storage) + "\n"
+        no_moves = after_event_checkup(responses, topic_name, merels_storage)
+
+        mechanics.update_hill_uid(topic_name, merels_storage)
+
+        responses += mechanics.display_game(topic_name, merels_storage) + "\n"
+
+        if no_moves != "":
+            same_player_move = no_moves
 
         if mechanics.get_take_status(topic_name, merels_storage) == 1:
             same_player_move = "Take is required to proceed.\n"
@@ -114,26 +112,24 @@ def beat(message, topic_name, merels_storage):
             if mechanics.get_take_status(topic_name, merels_storage) == 1:
                 same_player_move = "Take is required to proceed.\n"
             return responses, same_player_move
-        # take 5,3
         elif command == "take":
             responses = ""
-            if mechanics.get_take_status(topic_name, merels_storage) == 1:
-                responses += mechanics.take_man(topic_name, p1[0], p1[1], merels_storage) + "\n"
-                if "Failed" in responses:
-                    raise BadMoveException(responses)
-                mechanics.update_toggle_take_mode(topic_name, merels_storage)
-                no_moves = after_event_checkup(responses, topic_name, merels_storage)
-
-                mechanics.update_hill_uid(topic_name, merels_storage)
-
-                responses += mechanics.display_game(topic_name, merels_storage) + "\n"
-                responses += check_win(topic_name, merels_storage)
-
-                if no_moves != "":
-                    same_player_move = no_moves
-                return responses, same_player_move
-            else:
+            if mechanics.get_take_status(topic_name, merels_storage) != 1:
                 raise BadMoveException("Taking is not possible.")
+            responses += mechanics.take_man(topic_name, p1[0], p1[1], merels_storage) + "\n"
+            if "Failed" in responses:
+                raise BadMoveException(responses)
+            mechanics.update_toggle_take_mode(topic_name, merels_storage)
+            no_moves = after_event_checkup(responses, topic_name, merels_storage)
+
+            mechanics.update_hill_uid(topic_name, merels_storage)
+
+            responses += mechanics.display_game(topic_name, merels_storage) + "\n"
+            responses += check_win(topic_name, merels_storage)
+
+            if no_moves != "":
+                same_player_move = no_moves
+            return responses, same_player_move
         else:
             return unknown_command()
 
@@ -148,7 +144,7 @@ def check_take_mode(response, topic_name, merels_storage):
     :param merels_storage: Merels' storage
     :return: None
     """
-    if not ("Failed" in response):
+    if "Failed" not in response:
         if mechanics.can_take_mode(topic_name, merels_storage):
             mechanics.update_toggle_take_mode(topic_name, merels_storage)
         else:

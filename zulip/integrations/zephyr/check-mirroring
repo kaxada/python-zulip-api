@@ -134,7 +134,7 @@ for (stream, test) in test_streams:
         zephyr_subs_to_add.append((stream, "*", "*"))
 
 actually_subscribed = False
-for tries in range(10):
+for _ in range(10):
     try:
         zephyr.init()
         zephyr._z.subAll(zephyr_subs_to_add)
@@ -206,17 +206,14 @@ for key, (stream, test) in zhkeys.items():
         zwrite_args = ["zwrite", "-n", "-s", zsig, mit_user]
     else:
         zwrite_args = ["zwrite", "-n", "-s", zsig, "-c", stream, "-i", "test"]
-    server_failure = send_zephyr(zwrite_args, str(key))
-    if server_failure:
+    if server_failure := send_zephyr(zwrite_args, str(key)):
         # Replace the key we're not sure was delivered with a new key
         value = zhkeys.pop(key)
         new_key = gen_key(zhkeys)
         zhkeys[new_key] = value
-        server_failure_again = send_zephyr(zwrite_args, str(new_key))
-        if server_failure_again:
+        if server_failure_again := send_zephyr(zwrite_args, str(new_key)):
             logging.error(
-                "Zephyr server failure twice in a row on keys %s and %s!  Aborting."
-                % (key, new_key)
+                f"Zephyr server failure twice in a row on keys {key} and {new_key}!  Aborting."
             )
             print_status_and_exit(1)
         else:
@@ -279,9 +276,7 @@ def process_keys(content_list: List[str]) -> Tuple[Dict[str, int], Set[str], Set
     # Start by filtering out any keys that might have come from
     # concurrent check-mirroring processes
     content_keys = [key for key in content_list if key in all_keys]
-    key_counts = {}  # type: Dict[str, int]
-    for key in all_keys:
-        key_counts[key] = 0
+    key_counts = {key: 0 for key in all_keys}
     for key in content_keys:
         key_counts[key] += 1
     z_missing = {key for key in zhkeys.keys() if key_counts[key] == 0}

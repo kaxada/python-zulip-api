@@ -22,13 +22,7 @@ class GithubHandler:
         self.repo = self.config_info.get("repo", False)
 
     def usage(self) -> str:
-        return (
-            "This plugin displays details on github issues and pull requests. "
-            "To reference an issue or pull request usename mention the bot then "
-            "anytime in the message type its id, for example:\n"
-            "@**Github detail** #3212 zulip#3212 zulip/zulip#3212\n"
-            "The default owner is {} and the default repo is {}.".format(self.owner, self.repo)
-        )
+        return f"This plugin displays details on github issues and pull requests. To reference an issue or pull request usename mention the bot then anytime in the message type its id, for example:\n@**Github detail** #3212 zulip#3212 zulip/zulip#3212\nThe default owner is {self.owner} and the default repo is {self.repo}."
 
     def format_message(self, details: Dict[str, Any]) -> str:
         number = details["number"]
@@ -62,9 +56,7 @@ class GithubHandler:
         except requests.exceptions.RequestException as e:
             logging.exception(str(e))
             return None
-        if r.status_code != requests.codes.ok:
-            return None
-        return r.json()
+        return None if r.status_code != requests.codes.ok else r.json()
 
     def get_owner_and_repo(self, issue_pr: Any) -> Tuple[str, str]:
         owner = issue_pr.group(1)
@@ -106,7 +98,7 @@ class GithubHandler:
                     )
             else:
                 bot_messages.append("Failed to detect owner and repository name.")
-        if len(bot_messages) == 0:
+        if not bot_messages:
             bot_messages.append("Failed to find any issue or PR.")
         bot_message = "\n".join(bot_messages)
         bot_handler.send_reply(message, bot_message)

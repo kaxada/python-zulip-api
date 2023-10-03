@@ -51,7 +51,7 @@ language_not_found_text = "{} language not found. Visit [here](https://cloud.goo
 
 def get_supported_languages(key):
     parameters = {"key": key, "target": "en"}
-    response = requests.get(api_url + "/languages", params=parameters)
+    response = requests.get(f"{api_url}/languages", params=parameters)
     if response.status_code == requests.codes.ok:
         languages = response.json()["data"]["languages"]
         return {lang["name"].lower(): lang["language"].lower() for lang in languages}
@@ -65,7 +65,7 @@ class TranslateError(Exception):
 def translate(text_to_translate, key, dest, src):
     parameters = {"q": text_to_translate, "target": dest, "key": key}
     if src != "":
-        parameters.update({"source": src})
+        parameters["source"] = src
     response = requests.post(api_url, params=parameters)
     if response.status_code == requests.codes.ok:
         return response.json()["data"]["translations"][0]["translatedText"]

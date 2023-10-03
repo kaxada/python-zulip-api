@@ -28,7 +28,7 @@ class GameData:
         :return: A tuple containing all the game records
         """
 
-        res = (
+        return (
             self.topic_name,
             self.turn,
             self.x_taken,
@@ -37,7 +37,6 @@ class GameData:
             self.hill_uid,
             self.take_mode,
         )
-        return res
 
     def grid(self):
         """Returns the grid
@@ -80,17 +79,11 @@ class GameData:
 
         :return: None
         """
-        if self.turn == "X":
-            self.turn = "O"
-        else:
-            self.turn = "X"
+        self.turn = "O" if self.turn == "X" else "X"
 
     def toggle_take_mode(self):
         """Toggles take mode
 
         :return: None
         """
-        if self.take_mode == 0:
-            self.take_mode = 1
-        else:
-            self.take_mode = 0
+        self.take_mode = 1 if self.take_mode == 0 else 0

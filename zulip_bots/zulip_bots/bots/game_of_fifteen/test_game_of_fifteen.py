@@ -11,8 +11,7 @@ class TestGameOfFifteenBot(BotTestCase, DefaultTests):
     def make_request_message(
         self, content: str, user: str = "foo@example.com", user_name: str = "foo"
     ) -> Dict[str, str]:
-        message = dict(sender_email=user, content=content, sender_full_name=user_name)
-        return message
+        return dict(sender_email=user, content=content, sender_full_name=user_name)
 
     # Function that serves similar purpose to BotTestCase.verify_dialog, but allows for multiple responses to be handled
     def verify_response(
@@ -80,13 +79,13 @@ class TestGameOfFifteenBot(BotTestCase, DefaultTests):
                 self.assertFalse(gameOfFifteenModel.validate_move(move))
 
         def confirmMove(
-            tile: str,
-            token_number: int,
-            initial_board: List[List[int]],
-            final_board: List[List[int]],
-        ) -> None:
+                tile: str,
+                token_number: int,
+                initial_board: List[List[int]],
+                final_board: List[List[int]],
+            ) -> None:
             gameOfFifteenModel.update_board(initial_board)
-            test_board = gameOfFifteenModel.make_move("move " + tile, token_number)
+            test_board = gameOfFifteenModel.make_move(f"move {tile}", token_number)
 
             self.assertEqual(test_board, final_board)
 

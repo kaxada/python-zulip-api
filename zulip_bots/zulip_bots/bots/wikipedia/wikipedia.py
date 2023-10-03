@@ -40,15 +40,15 @@ class WikipediaHandler:
     def get_bot_wiki_response(self, message: Dict[str, str], bot_handler: BotHandler) -> str:
         """This function returns the URLs of the requested topic."""
 
-        help_text = "Please enter your search term after {}"
-
         # Checking if the link exists.
         query = message["content"]
         if query == "":
+            help_text = "Please enter your search term after {}"
+
             return help_text.format(bot_handler.identity().mention)
 
-        query_wiki_url = "https://en.wikipedia.org/w/api.php"
         query_wiki_params = dict(action="query", list="search", srsearch=query, format="json")
+        query_wiki_url = "https://en.wikipedia.org/w/api.php"
         try:
             data = requests.get(query_wiki_url, params=query_wiki_params)
 
@@ -67,7 +67,7 @@ class WikipediaHandler:
                 "Please try again later."
             )
 
-        new_content = "For search term:" + query + "\n"
+        new_content = f"For search term:{query}" + "\n"
 
         # Checking if there is content for the searched term
         if len(data.json()["query"]["search"]) == 0:
@@ -77,14 +77,9 @@ class WikipediaHandler:
         else:
             for i in range(min(3, len(data.json()["query"]["search"]))):
                 search_string = data.json()["query"]["search"][i]["title"].replace(" ", "_")
-                url = "https://en.wikipedia.org/wiki/" + search_string
+                url = f"https://en.wikipedia.org/wiki/{search_string}"
                 new_content += (
-                    str(i + 1)
-                    + ":"
-                    + "["
-                    + search_string
-                    + "]"
-                    + "("
+                    f"{str(i + 1)}:[{search_string}]("
                     + url.replace('"', "%22")
                     + ")\n"
                 )

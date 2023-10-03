@@ -57,8 +57,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--provision", action="store_true", help="install dependencies for the bot")
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def exit_gracefully_if_zulip_config_is_missing(config_file: Optional[str]) -> None:
@@ -72,11 +71,10 @@ def exit_gracefully_if_zulip_config_is_missing(config_file: Optional[str]) -> No
         else:
             error_msg = f"ERROR: {config_file} does not exist."
 
+    elif zulip_env_vars_are_present():
+        return
     else:
-        if zulip_env_vars_are_present():
-            return
-        else:
-            error_msg = "ERROR: You did not supply a Zulip config file."
+        error_msg = "ERROR: You did not supply a Zulip config file."
 
     if error_msg:
         print("\n")
@@ -127,39 +125,37 @@ def main() -> None:
             sys.exit(1)
         if lib_module:
             bot_name = args.bot
+    elif result := finder.resolve_bot_path(args.bot):
+        bot_path, bot_name = result
+        sys.path.insert(0, os.path.dirname(bot_path))
+
+        if args.provision:
+            provision_bot(os.path.dirname(bot_path), args.force)
+
+        try:
+            lib_module = finder.import_module_from_source(bot_path.as_posix(), bot_name)
+        except ImportError:
+            req_path = os.path.join(os.path.dirname(bot_path), "requirements.txt")
+            with open(req_path) as fp:
+                deps_list = fp.read()
+
+            dep_err_msg = (
+                "ERROR: The following dependencies for the {bot_name} bot are not installed:\n\n"
+                "{deps_list}\n"
+                "If you'd like us to install these dependencies, run:\n"
+                "    zulip-run-bot {bot_name} --provision"
+            )
+            print(dep_err_msg.format(bot_name=bot_name, deps_list=deps_list))
+            sys.exit(1)
+        bot_source = "source"
     else:
-        result = finder.resolve_bot_path(args.bot)
-        if result:
-            bot_path, bot_name = result
-            sys.path.insert(0, os.path.dirname(bot_path))
-
+        lib_module = finder.import_module_by_name(args.bot)
+        if lib_module:
+            bot_name = lib_module.__name__
+            bot_source = "named module"
             if args.provision:
-                provision_bot(os.path.dirname(bot_path), args.force)
-
-            try:
-                lib_module = finder.import_module_from_source(bot_path.as_posix(), bot_name)
-            except ImportError:
-                req_path = os.path.join(os.path.dirname(bot_path), "requirements.txt")
-                with open(req_path) as fp:
-                    deps_list = fp.read()
-
-                dep_err_msg = (
-                    "ERROR: The following dependencies for the {bot_name} bot are not installed:\n\n"
-                    "{deps_list}\n"
-                    "If you'd like us to install these dependencies, run:\n"
-                    "    zulip-run-bot {bot_name} --provision"
-                )
-                print(dep_err_msg.format(bot_name=bot_name, deps_list=deps_list))
+                print("ERROR: Could not load bot's module for '{}'. Exiting now.")
                 sys.exit(1)
-            bot_source = "source"
-        else:
-            lib_module = finder.import_module_by_name(args.bot)
-            if lib_module:
-                bot_name = lib_module.__name__
-                bot_source = "named module"
-                if args.provision:
-                    print("ERROR: Could not load bot's module for '{}'. Exiting now.")
-                    sys.exit(1)
 
     if lib_module is None:
         print("ERROR: Could not load bot module. Exiting now.")

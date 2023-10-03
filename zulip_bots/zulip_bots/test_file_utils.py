@@ -30,5 +30,4 @@ def read_bot_fixture_data(bot_name: str, test_name: str) -> Dict[str, Any]:
     http_data_path = os.path.join(base_path, f"{test_name}.json")
     with open(http_data_path, encoding="utf-8") as f:
         content = f.read()
-    http_data = json.loads(content)
-    return http_data
+    return json.loads(content)
