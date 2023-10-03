@@ -39,9 +39,7 @@ def mkdir_p(path: str) -> None:
     try:
         os.makedirs(path)
     except OSError as e:
-        if e.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if e.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 
@@ -58,17 +56,17 @@ def send_log_zulip(file_name: str, count: int, lines: List[str], extra: str = ""
 
 
 def process_lines(raw_lines: List[str], file_name: str) -> None:
-    lines = []
-    for line in raw_lines:
-        # Add any filtering or modification code here
-        if re.match(r".*upstream timed out.*while reading upstream.*", line):
-            continue
-        lines.append(line)
-
-    if len(lines) == 0:
+    lines = [
+        line
+        for line in raw_lines
+        if not re.match(
+            r".*upstream timed out.*while reading upstream.*", line
+        )
+    ]
+    if not lines:
         return
     elif len(lines) > 10:
-        send_log_zulip(file_name, len(lines), lines[0:3], extra=", examples include")
+        send_log_zulip(file_name, len(lines), lines[:3], extra=", examples include")
     else:
         send_log_zulip(file_name, len(lines), lines)
 
@@ -95,7 +93,7 @@ def process_logs() -> None:
             # a log file ends up at the same line length as before
             # immediately after rotation, this tool won't notice.
             file_data["last"] = 1
-        output = subprocess.check_output(["tail", "-n+{}".format(file_data["last"]), log_file])
+        output = subprocess.check_output(["tail", f'-n+{file_data["last"]}', log_file])
         new_lines = output.decode("utf-8", errors="replace").split("\n")[:-1]
         if len(new_lines) > 0:
             process_lines(new_lines, log_file)

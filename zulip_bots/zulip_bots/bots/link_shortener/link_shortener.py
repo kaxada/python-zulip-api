@@ -64,14 +64,14 @@ class LinkShortenerHandler:
 
         shortened_links = [self.shorten_link(link) for link in link_matches]
         link_pairs = [
-            (link_match + ": " + shortened_link)
+            f"{link_match}: {shortened_link}"
             for link_match, shortened_link in zip(link_matches, shortened_links)
             if shortened_link != ""
         ]
         final_response = "\n".join(link_pairs)
 
-        if final_response == "":
-            bot_handler.send_reply(message, "No links found. " + HELP_STR)
+        if not final_response:
+            bot_handler.send_reply(message, f"No links found. {HELP_STR}")
             return
 
         bot_handler.send_reply(message, final_response)
@@ -85,11 +85,12 @@ class LinkShortenerHandler:
         """
 
         response_json = self.call_link_shorten_service(long_url)
-        if response_json["status_code"] == 200 and self.has_shorten_url(response_json):
-            shorten_url = self.get_shorten_url(response_json)
-        else:
-            shorten_url = ""
-        return shorten_url
+        return (
+            self.get_shorten_url(response_json)
+            if response_json["status_code"] == 200
+            and self.has_shorten_url(response_json)
+            else ""
+        )
 
     def call_link_shorten_service(self, long_url: str) -> Any:
         response = requests.get(

@@ -18,11 +18,10 @@ def do_send_message(client: zulip.Client, message_data: Dict[str, Any]) -> bool:
 
     if message_data["type"] == "stream":
         log.info(
-            'Sending message to stream "%s", subject "%s"... '
-            % (message_data["to"], message_data["subject"])
+            f'Sending message to stream "{message_data["to"]}", subject "{message_data["subject"]}"... '
         )
     else:
-        log.info("Sending message to {}... ".format(message_data["to"]))
+        log.info(f'Sending message to {message_data["to"]}... ')
     response = client.send_message(message_data)
     if response["result"] == "success":
         log.info("Message sent.")
@@ -100,9 +99,7 @@ def main() -> int:
             "to": options.recipients,
         }
 
-    if not do_send_message(client, message_data):
-        return 1
-    return 0
+    return 1 if not do_send_message(client, message_data) else 0
 
 
 if __name__ == "__main__":

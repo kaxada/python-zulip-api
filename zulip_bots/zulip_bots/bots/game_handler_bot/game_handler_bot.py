@@ -14,7 +14,7 @@ class GameHandlerBotMessageHandler:
 
     def alert_move_message(self, original_player: str, move_info: str) -> str:
         column_number = move_info.replace("move ", "")
-        return original_player + " moved in column " + column_number
+        return f"{original_player} moved in column {column_number}"
 
     def game_start_message(self) -> str:
         return "Type `move <column>` to place a token.\n \

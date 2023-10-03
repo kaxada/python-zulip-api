@@ -14,14 +14,14 @@ class FileUploaderHandler:
         )
 
     def handle_message(self, message: Dict[str, str], bot_handler: BotHandler) -> None:
-        HELP_STR = (
-            "Use this bot with any of the following commands:"
-            "\n* `@uploader <local_file_path>` : Upload a file, where `<local_file_path>` is the path to the file"
-            "\n* `@uploader help` : Display help message"
-        )
-
         content = message["content"].strip()
         if content == "help":
+            HELP_STR = (
+                "Use this bot with any of the following commands:"
+                "\n* `@uploader <local_file_path>` : Upload a file, where `<local_file_path>` is the path to the file"
+                "\n* `@uploader help` : Display help message"
+            )
+
             bot_handler.send_reply(message, HELP_STR)
             return
 
@@ -37,7 +37,7 @@ class FileUploaderHandler:
             bot_handler.send_reply(message, f"Failed to upload `{path}` file: {msg}")
             return
 
-        uploaded_file_reply = "[{}]({})".format(path.name, upload["uri"])
+        uploaded_file_reply = f'[{path.name}]({upload["uri"]})'
         bot_handler.send_reply(message, uploaded_file_reply)
 
 

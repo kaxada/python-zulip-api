@@ -17,7 +17,7 @@ class TestGameHandlerBot(BotTestCase, DefaultTests):
         stream: str = "",
         subject: str = "",
     ) -> Dict[str, str]:
-        message = dict(
+        return dict(
             sender_email=user,
             sender_full_name=user_name,
             content=content,
@@ -25,7 +25,6 @@ class TestGameHandlerBot(BotTestCase, DefaultTests):
             display_recipient=stream,
             subject=subject,
         )
-        return message
 
     # Function that serves similar purpose to BotTestCase.verify_dialog, but allows for multiple responses to be handled
     def verify_response(
@@ -49,9 +48,9 @@ class TestGameHandlerBot(BotTestCase, DefaultTests):
             bot, bot_handler = self._get_handlers()
         else:
             _b, bot_handler = self._get_handlers()
-        type = "private" if stream == "" else "stream"
+        type = "private" if not stream else "stream"
         message = self.make_request_message(
-            request, user_name + "@example.com", user_name, type, stream, subject
+            request, f"{user_name}@example.com", user_name, type, stream, subject
         )
         bot_handler.reset_transcript()
         bot.handle_message(message, bot_handler)
@@ -83,10 +82,8 @@ class TestGameHandlerBot(BotTestCase, DefaultTests):
             bot, bot_handler = self._get_handlers()
         for p in players:
             self.add_user_to_cache(p, bot)
-        players_emails = [p + "@example.com" for p in players]
-        game_id = "abc123"
-        if id != "":
-            game_id = id
+        players_emails = [f"{p}@example.com" for p in players]
+        game_id = id if id != "" else "abc123"
         instance = GameInstance(bot, False, subject, game_id, players_emails, stream)
         bot.instances.update({game_id: instance})
         instance.turn = -1

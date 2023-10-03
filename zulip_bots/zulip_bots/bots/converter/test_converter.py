@@ -19,9 +19,15 @@ class TestConverterBot(BotTestCase, DefaultTests):
             ),
             ("2 m cm", "2 m = 200.0 cm\n"),
             ("12.0 celsius fahrenheit", "12.0 celsius = 53.600054 fahrenheit\n"),
-            ("0.002 kilometer millimile", "0.002 kilometer = 1.2427424 millimile\n"),
+            (
+                "0.002 kilometer millimile",
+                "0.002 kilometer = 1.2427424 millimile\n",
+            ),
             ("3 megabyte kilobit", "3 megabyte = 24576.0 kilobit\n"),
-            ("foo m cm", "`foo` is not a valid number. " + utils.QUICK_HELP + "\n"),
+            (
+                "foo m cm",
+                f"`foo` is not a valid number. {utils.QUICK_HELP}" + "\n",
+            ),
             (
                 "@convert help",
                 "1. conversion: Too few arguments given. "

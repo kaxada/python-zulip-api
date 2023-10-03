@@ -40,13 +40,10 @@ class StackOverflowHandler:
     ) -> Optional[str]:
         """This function returns the URLs of the requested topic."""
 
-        help_text = "Please enter your query after @mention-bot to search StackOverflow"
-
         # Checking if the link exists.
         query = message["content"]
-        if query == "" or query == "help":
-            return help_text
-
+        if query in ["", "help"]:
+            return "Please enter your query after @mention-bot to search StackOverflow"
         query_stack_url = "http://api.stackexchange.com/2.2/search/advanced"
         query_stack_params = dict(order="desc", sort="relevance", site="stackoverflow", title=query)
         try:
@@ -67,7 +64,7 @@ class StackOverflowHandler:
                 "Please try again later."
             )
 
-        new_content = "For search term:" + query + "\n"
+        new_content = f"For search term:{query}" + "\n"
 
         # Checking if there is content for the searched term
         if len(data.json()["items"]) == 0:
@@ -78,7 +75,7 @@ class StackOverflowHandler:
             for i in range(min(3, len(data.json()["items"]))):
                 search_string = data.json()["items"][i]["title"]
                 link = data.json()["items"][i]["link"]
-                new_content += str(i + 1) + " : " + "[" + search_string + "]" + "(" + link + ")\n"
+                new_content += f"{str(i + 1)} : [{search_string}]({link}" + ")\n"
         return new_content
 
 

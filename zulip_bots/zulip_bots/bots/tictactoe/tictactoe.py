@@ -38,9 +38,7 @@ class TicTacToeModel:
     def determine_game_over(self, players: List[str]) -> str:
         if self.contains_winning_move(self.current_board):
             return "current turn"
-        if self.board_is_full(self.current_board):
-            return "draw"
-        return ""
+        return "draw" if self.board_is_full(self.current_board) else ""
 
     def board_is_full(self, board: Any) -> bool:
         """Determines if the board is full or not."""
@@ -54,41 +52,34 @@ class TicTacToeModel:
     def contains_winning_move(self, board: Any) -> bool:
         """Returns true if all coordinates in a triplet have the same value in them (x or o) and no coordinates
         in the triplet are blank."""
-        for triplet in self.triplets:
-            if (
+        return any(
+            (
                 self.get_value(board, triplet[0])
                 == self.get_value(board, triplet[1])
                 == self.get_value(board, triplet[2])
                 != 0
-            ):
-                return True
-        return False
+            )
+            for triplet in self.triplets
+        )
 
     def get_locations_of_char(self, board: Any, char: int) -> List[List[int]]:
         """Gets the locations of the board that have char in them."""
         locations = []
         for row in range(3):
-            for col in range(3):
-                if board[row][col] == char:
-                    locations.append([row, col])
+            locations.extend([row, col] for col in range(3) if board[row][col] == char)
         return locations
 
     def two_blanks(self, triplet: List[Tuple[int, int]], board: Any) -> List[Tuple[int, int]]:
         """Determines which rows/columns/diagonals have two blank spaces and an 2 already in them. It's more advantageous
         for the computer to move there. This is used when the computer makes its move."""
 
-        o_found = False
-        for position in triplet:
-            if self.get_value(board, position) == 2:
-                o_found = True
-                break
-
-        blanks_list = []
+        o_found = any(self.get_value(board, position) == 2 for position in triplet)
         if o_found:
-            for position in triplet:
-                if self.get_value(board, position) == 0:
-                    blanks_list.append(position)
-
+            blanks_list = [
+                position
+                for position in triplet
+                if self.get_value(board, position) == 0
+            ]
             if len(blanks_list) == 2:
                 return blanks_list
         return []
@@ -101,15 +92,15 @@ class TicTacToeModel:
         x_locations = self.get_locations_of_char(board, 1)
         # List of the coordinates of the corners of the board
         corner_locations = [[0, 0], [0, 2], [2, 0], [2, 2]]
-        # List of the coordinates of the edge spaces of the board
-        edge_locations = [[1, 0], [0, 1], [1, 2], [2, 1]]
-
         # If no empty spaces are left, the computer can't move anyway, so it just returns the board.
         if blank_locations == []:
             return board
 
         # This is special logic only used on the first move.
         if len(x_locations) == 1:
+            # List of the coordinates of the edge spaces of the board
+            edge_locations = [[1, 0], [0, 1], [1, 2], [2, 1]]
+
             # If the user played first in the corner or edge,
             # the computer should move in the center.
             if x_locations[0] in corner_locations or x_locations[0] in edge_locations:
@@ -162,26 +153,20 @@ class TicTacToeModel:
         if self.smarter:
             blanks = []  # type: Any
             for triplet in self.triplets:
-                result = self.two_blanks(triplet, board)
-                if result:
+                if result := self.two_blanks(triplet, board):
                     blanks = blanks + result
             blank_set = set(blanks)
-            blank_list = list(blank_set)
-            if blank_list == []:
-                location = random.choice(blank_locations)
-            else:
+            if blank_list := list(blank_set):
                 location = random.choice(blank_list)
-            row = location[0]
-            col = location[1]
-            board[row][col] = 2
-            return board
-
+            else:
+                location = random.choice(blank_locations)
         else:
             location = random.choice(blank_locations)
-            row = location[0]
-            col = location[1]
-            board[row][col] = 2
-            return board
+
+        row = location[0]
+        col = location[1]
+        board[row][col] = 2
+        return board
 
     def is_valid_move(self, move: str) -> bool:
         """Checks the validity of the coordinate input passed in to make sure it's not out-of-bounds (ex. 5, 5)"""
@@ -299,8 +284,7 @@ def coords_from_command(cmd: str) -> str:
     """As there are various ways to input a coordinate (with/without parentheses, with/without spaces, etc.) the
     input is stripped to just the numbers before being used in the program."""
     cmd_num = int(cmd.replace("move ", "")) - 1
-    cmd = f"{(cmd_num % 3) + 1},{(cmd_num // 3) + 1}"
-    return cmd
+    return f"{cmd_num % 3 + 1},{cmd_num // 3 + 1}"
 
 
 handler_class = ticTacToeHandler

@@ -61,7 +61,7 @@ def get_url_gif_giphy(keyword: str, api_key: str) -> Union[int, str]:
     # In case of error, e.g. failure to fetch a GIF URL, it will
     # return a number.
     query = {"api_key": api_key}
-    if len(keyword) > 0:
+    if keyword != "":
         query["s"] = keyword
         url = GIPHY_TRANSLATE_API
     else:

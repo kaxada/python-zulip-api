@@ -150,9 +150,7 @@ class GameAdapter:
 
     def play_with_computer_help(self) -> str:
         if self.supports_computer:
-            return "\n* To start a game with the computer, type\n`start game with` @**{}**".format(
-                self.get_bot_username()
-            )
+            return f"\n* To start a game with the computer, type\n`start game with` @**{self.get_bot_username()}**"
         return ""
 
     def alert_new_invitation(self, game_id: str) -> str:
@@ -173,15 +171,11 @@ class GameAdapter:
 
     def confirm_invitation_accepted(self, game_id: str) -> str:
         host = self.invites[game_id]["host"]
-        return "Accepted invitation to play **{}** from @**{}**.".format(
-            self.game_name, self.get_username_by_email(host)
-        )
+        return f"Accepted invitation to play **{self.game_name}** from @**{self.get_username_by_email(host)}**."
 
     def confirm_invitation_declined(self, game_id: str) -> str:
         host = self.invites[game_id]["host"]
-        return "Declined invitation to play **{}** from @**{}**.".format(
-            self.game_name, self.get_username_by_email(host)
-        )
+        return f"Declined invitation to play **{self.game_name}** from @**{self.get_username_by_email(host)}**."
 
     def send_message(self, to: str, content: str, is_private: bool, subject: str = "") -> None:
         self.bot_handler.send_message(
@@ -273,7 +267,7 @@ class GameAdapter:
             elif content.lower() == "register":
                 self.send_reply(
                     message,
-                    "Hello @**{}**. Thanks for registering!".format(message["sender_full_name"]),
+                    f'Hello @**{message["sender_full_name"]}**. Thanks for registering!',
                 )
 
             elif content.lower() == "leaderboard":
@@ -293,20 +287,23 @@ class GameAdapter:
                 self.send_reply(
                     message, "You are not in a game at the moment. Type `help` for help."
                 )
+            elif self.is_single_player:
+                self.send_reply(message, self.help_message_single_player())
             else:
-                if self.is_single_player:
-                    self.send_reply(message, self.help_message_single_player())
-                else:
-                    self.send_reply(message, self.help_message())
+                self.send_reply(message, self.help_message())
         except Exception as e:
             logging.exception(str(e))
             self.bot_handler.send_reply(message, f"Error {e}.")
 
     def is_user_in_game(self, user_email: str) -> str:
-        for instance in self.instances.values():
-            if user_email in instance.players:
-                return instance.game_id
-        return ""
+        return next(
+            (
+                instance.game_id
+                for instance in self.instances.values()
+                if user_email in instance.players
+            ),
+            "",
+        )
 
     def command_start_game_with(self, message: Dict[str, Any], sender: str, content: str) -> None:
         if not self.is_user_not_player(sender, message):
@@ -352,14 +349,12 @@ class GameAdapter:
         if self.is_game_in_subject(message["subject"], message["display_recipient"]):
             self.send_reply(message, "There is already a game in this stream.")
             return
-        if len(users) > 0:
+        if users:
             users = self.verify_users(users, message=message)
             if len(users) + 1 < self.min_players:
                 self.send_reply(
                     message,
-                    "You must have at least {} players to play.\nGame cancelled.".format(
-                        self.min_players
-                    ),
+                    f"You must have at least {self.min_players} players to play.\nGame cancelled.",
                 )
                 return
             if len(users) + 1 > self.max_players:
@@ -385,26 +380,18 @@ class GameAdapter:
             if len(users) > 0:
                 self.broadcast(
                     game_id,
-                    'If you were invited, and you\'re here, type "@**{}** accept" to accept the invite!'.format(
-                        self.get_bot_username()
-                    ),
+                    f"""If you were invited, and you\'re here, type "@**{self.get_bot_username()}** accept" to accept the invite!""",
                     include_private=False,
                 )
             if len(users) + 1 < self.max_players:
                 self.broadcast(
                     game_id,
-                    "**{}** wants to play **{}**. Type @**{}** join to play them!".format(
-                        self.get_username_by_email(message["sender_email"]),
-                        self.game_name,
-                        self.get_bot_username(),
-                    ),
+                    f'**{self.get_username_by_email(message["sender_email"])}** wants to play **{self.game_name}**. Type @**{self.get_bot_username()}** join to play them!',
                 )
             if self.is_single_player:
                 self.broadcast(
                     game_id,
-                    "**{}** is now going to play {}!".format(
-                        self.get_username_by_email(message["sender_email"]), self.game_name
-                    ),
+                    f'**{self.get_username_by_email(message["sender_email"])}** is now going to play {self.game_name}!',
                 )
 
         if self.email in users:
@@ -477,13 +464,12 @@ class GameAdapter:
 
     def command_leaderboard(self, message: Dict[str, Any], sender: str, content: str) -> None:
         stats = self.get_sorted_player_statistics()
-        num = 5 if len(stats) > 5 else len(stats)
-        top_stats = stats[0:num]
-        response = "**Most wins**\n\n"
+        num = min(len(stats), 5)
+        top_stats = stats[:num]
         raw_headers = ["games_won", "games_drawn", "games_lost", "total_games"]
         headers = ["Player"] + [key.replace("_", " ").title() for key in raw_headers]
-        response += " | ".join(headers)
-        response += "\n" + " | ".join(" --- " for header in headers)
+        response = "**Most wins**\n\n" + " | ".join(headers)
+        response += "\n" + " | ".join(" --- " for _ in headers)
         for player, stat in top_stats:
             response += f"\n **{self.get_username_by_email(player)}** | "
             values = [str(stat[key]) for key in raw_headers]
@@ -492,10 +478,11 @@ class GameAdapter:
         return
 
     def get_sorted_player_statistics(self) -> List[Tuple[str, Dict[str, int]]]:
-        players = []
-        for user_name, u in self.user_cache.items():
-            if "stats" in u.keys():
-                players.append((user_name, u["stats"]))
+        players = [
+            (user_name, u["stats"])
+            for user_name, u in self.user_cache.items()
+            if "stats" in u.keys()
+        ]
         return sorted(
             players,
             key=lambda player: (
@@ -552,9 +539,7 @@ class GameAdapter:
         if game_id in self.instances.keys():
             instance = self.instances[game_id]
             if not self.is_single_player:
-                object += "\n> **[Join Game](/#narrow/stream/{}/topic/{})**".format(
-                    instance.stream, instance.subject
-                )
+                object += f"\n> **[Join Game](/#narrow/stream/{instance.stream}/topic/{instance.subject})**"
         return object
 
     def join_game(self, game_id: str, user_email: str, message: Dict[str, Any] = {}) -> None:
@@ -569,22 +554,23 @@ class GameAdapter:
         self.start_game_if_ready(game_id)
 
     def get_players(self, game_id: str, parameter: str = "a") -> List[str]:
-        if game_id in self.invites.keys():
-            players = []  # type: List[str]
-            if (
-                self.invites[game_id]["subject"] == "###private###" and "p" in parameter
-            ) or "p" not in parameter:
-                players = [self.invites[game_id]["host"]]
-            for player, accepted in self.invites[game_id].items():
-                if player == "host" or player == "subject" or player == "stream":
-                    continue
-                if parameter in accepted:
-                    players.append(player)
-            return players
-        if game_id in self.instances.keys() and "p" not in parameter:
-            players = self.instances[game_id].players
-            return players
-        return []
+        if game_id not in self.invites.keys():
+            return (
+                self.instances[game_id].players
+                if game_id in self.instances.keys() and "p" not in parameter
+                else []
+            )
+        players = []  # type: List[str]
+        if (
+            self.invites[game_id]["subject"] == "###private###" and "p" in parameter
+        ) or "p" not in parameter:
+            players = [self.invites[game_id]["host"]]
+        for player, accepted in self.invites[game_id].items():
+            if player in ["host", "subject", "stream"]:
+                continue
+            if parameter in accepted:
+                players.append(player)
+        return players
 
     def get_game_info(self, game_id: str) -> Dict[str, Any]:
         game_info = {}  # type: Dict[str, Any]
@@ -617,8 +603,7 @@ class GameAdapter:
         return {}
 
     def get_number_of_players(self, game_id: str) -> int:
-        num = len(self.get_players(game_id))
-        return num
+        return len(self.get_players(game_id))
 
     def parse_message(self, message: Dict[str, Any]) -> None:
         game_id = self.is_user_in_game(message["sender_email"])
@@ -629,9 +614,7 @@ class GameAdapter:
                 return
             self.send_reply(
                 message,
-                "Join your game using the link below!\n\n{}".format(
-                    self.get_formatted_game_object(game_id)
-                ),
+                f"Join your game using the link below!\n\n{self.get_formatted_game_object(game_id)}",
             )
             return
         if game["subject"] != message["subject"] or game["stream"] != message["display_recipient"]:
@@ -673,10 +656,7 @@ To move subjects, send your message again, otherwise join the game using the lin
         for game, users in self.invites.items():
             if user_email in users.keys():
                 if is_accepted:
-                    if message["type"] == "private":
-                        users[user_email] = "pa"
-                    else:
-                        users[user_email] = "a"
+                    users[user_email] = "pa" if message["type"] == "private" else "a"
                 else:
                     users.pop(user_email)
                 return game
@@ -710,17 +690,16 @@ To move subjects, send your message again, otherwise join the game using the lin
         for u in users:
             user = u.strip().lstrip("@**").rstrip("**")
             if (
-                user == self.get_bot_username() or user == self.email
-            ) and not self.supports_computer:
+                user in [self.get_bot_username(), self.email]
+                and not self.supports_computer
+            ):
                 self.send_reply(message, "You cannot play against the computer in this game.")
             if "@" not in user:
                 user_obj = self.get_user_by_name(user)
                 if user_obj == {}:
                     self.send_reply(
                         message,
-                        "I don't know {}. Tell them to say @**{}** register".format(
-                            u, self.get_bot_username()
-                        ),
+                        f"I don't know {u}. Tell them to say @**{self.get_bot_username()}** register",
                     )
                     failed = True
                     continue
@@ -729,22 +708,29 @@ To move subjects, send your message again, otherwise join the game using the lin
                 verified_users.append(user)
             else:
                 failed = True
-        if failed:
-            return []
-        else:
-            return verified_users
+        return [] if failed else verified_users
 
     def get_game_instance_by_subject(self, subject_name: str, stream_name: str) -> Any:
-        for instance in self.instances.values():
-            if instance.subject == subject_name and instance.stream == stream_name:
-                return instance
-        return None
+        return next(
+            (
+                instance
+                for instance in self.instances.values()
+                if instance.subject == subject_name
+                and instance.stream == stream_name
+            ),
+            None,
+        )
 
     def get_invite_in_subject(self, subject_name: str, stream_name: str) -> str:
-        for key, invite in self.invites.items():
-            if invite["subject"] == subject_name and invite["stream"] == stream_name:
-                return key
-        return ""
+        return next(
+            (
+                key
+                for key, invite in self.invites.items()
+                if invite["subject"] == subject_name
+                and invite["stream"] == stream_name
+            ),
+            "",
+        )
 
     def is_game_in_subject(self, subject_name: str, stream_name: str) -> bool:
         return (
@@ -758,9 +744,7 @@ To move subjects, send your message again, otherwise join the game using the lin
             if message != {}:
                 self.send_reply(
                     message,
-                    "I don't know {}. Tell them to use @**{}** register".format(
-                        user_email, self.get_bot_username()
-                    ),
+                    f"I don't know {user_email}. Tell them to use @**{self.get_bot_username()}** register",
                 )
             return False
         for instance in self.instances.values():
@@ -776,11 +760,11 @@ To move subjects, send your message again, otherwise join the game using the lin
         return True
 
     def generate_game_id(self) -> str:
-        id = ""
         valid_characters = "abcdefghijklmnopqrstuvwxyz0123456789"
-        for i in range(6):
-            id += valid_characters[random.randrange(0, len(valid_characters))]
-        return id
+        return "".join(
+            valid_characters[random.randrange(0, len(valid_characters))]
+            for _ in range(6)
+        )
 
     def broadcast(self, game_id: str, content: str, include_private: bool = True) -> bool:
         if include_private:
@@ -808,9 +792,7 @@ To move subjects, send your message again, otherwise join the game using the lin
         return self.get_user_by_email(user_email)["full_name"]
 
     def get_user_by_email(self, user_email: str) -> Dict[str, Any]:
-        if user_email in self.user_cache:
-            return self.user_cache[user_email]
-        return {}
+        return self.user_cache[user_email] if user_email in self.user_cache else {}
 
     def get_game_id_by_email(self, user_email: str) -> str:
         for instance in self.instances.values():
@@ -871,15 +853,13 @@ class GameInstance:
         self.broadcast_current_message()
 
     def get_player_text(self) -> str:
-        player_text = ""
-        for player in self.players:
-            player_text += f" @**{self.gameAdapter.get_username_by_email(player)}**"
-        return player_text
+        return "".join(
+            f" @**{self.gameAdapter.get_username_by_email(player)}**"
+            for player in self.players
+        )
 
     def get_start_message(self) -> str:
-        start_message = "Game `{}` started.\n*Remember to start your message with* @**{}**".format(
-            self.game_id, self.gameAdapter.get_bot_username()
-        )
+        start_message = f"Game `{self.game_id}` started.\n*Remember to start your message with* @**{self.gameAdapter.get_bot_username()}**"
         if not self.is_private:
             player_text = "\n**Players**"
             player_text += self.get_player_text()
@@ -891,34 +871,26 @@ class GameInstance:
         if content == "forfeit":
             player_name = self.gameAdapter.get_username_by_email(player_email)
             self.broadcast(f"**{player_name}** forfeited!")
-            self.end_game("except:" + player_email)
+            self.end_game(f"except:{player_email}")
             return
         if content == "draw":
-            if player_email in self.current_draw.keys():
-                self.current_draw[player_email] = True
-            else:
+            if player_email not in self.current_draw.keys():
                 self.current_draw = {p: False for p in self.players}
                 self.broadcast(
-                    "**{}** has voted for a draw!\nType `draw` to accept".format(
-                        self.gameAdapter.get_username_by_email(player_email)
-                    )
+                    f"**{self.gameAdapter.get_username_by_email(player_email)}** has voted for a draw!\nType `draw` to accept"
                 )
-                self.current_draw[player_email] = True
+            self.current_draw[player_email] = True
             if self.check_draw():
                 self.end_game("draw")
             return
         if self.is_turn_of(player_email):
             self.handle_current_player_command(content)
+        elif self.gameAdapter.is_single_player:
+            self.broadcast("It's your turn")
         else:
-            if self.gameAdapter.is_single_player:
-                self.broadcast("It's your turn")
-            else:
-                self.broadcast(
-                    "It's **{}**'s ({}) turn.".format(
-                        self.gameAdapter.get_username_by_email(self.players[self.turn]),
-                        self.gameAdapter.gameMessageHandler.get_player_color(self.turn),
-                    )
-                )
+            self.broadcast(
+                f"It's **{self.gameAdapter.get_username_by_email(self.players[self.turn])}**'s ({self.gameAdapter.gameMessageHandler.get_player_color(self.turn)}) turn."
+            )
 
     def broadcast(self, content: str) -> None:
         self.gameAdapter.broadcast(self.game_id, content)
@@ -950,15 +922,12 @@ class GameInstance:
         if not is_computer:
             self.current_messages.append(
                 self.gameAdapter.gameMessageHandler.alert_move_message(
-                    "**{}**".format(
-                        self.gameAdapter.get_username_by_email(self.players[self.turn])
-                    ),
+                    f"**{self.gameAdapter.get_username_by_email(self.players[self.turn])}**",
                     content,
                 )
             )
         self.current_messages.append(self.parse_current_board())
-        game_over = self.model.determine_game_over(self.players)
-        if game_over:
+        if game_over := self.model.determine_game_over(self.players):
             self.broadcast_current_message()
             if game_over == "current turn":
                 game_over = self.players[self.turn]
@@ -973,27 +942,21 @@ class GameInstance:
         if not is_computer:
             self.current_messages.append(
                 self.gameAdapter.gameMessageHandler.alert_move_message(
-                    "**{}**".format(
-                        self.gameAdapter.get_username_by_email(self.players[self.turn])
-                    ),
+                    f"**{self.gameAdapter.get_username_by_email(self.players[self.turn])}**",
                     content,
                 )
             )
         self.current_messages.append(self.parse_current_board())
         # append custom message the game wants to give for the next move
         self.current_messages.append(message)
-        game_over = self.model.determine_game_over(self.players)
-        if game_over:
+        if game_over := self.model.determine_game_over(self.players):
             self.broadcast_current_message()
             if game_over == "current turn":
                 game_over = self.players[self.turn]
             self.end_game(game_over)
             return
         self.current_messages.append(
-            "It's **{}**'s ({}) turn.".format(
-                self.gameAdapter.get_username_by_email(self.players[self.turn]),
-                self.gameAdapter.gameMessageHandler.get_player_color(self.turn),
-            )
+            f"It's **{self.gameAdapter.get_username_by_email(self.players[self.turn])}**'s ({self.gameAdapter.gameMessageHandler.get_player_color(self.turn)}) turn."
         )
         self.broadcast_current_message()
         if self.players[self.turn] == self.gameAdapter.email:
@@ -1007,10 +970,7 @@ class GameInstance:
             self.current_messages.append("It's your turn.")
         else:
             self.current_messages.append(
-                "It's **{}**'s ({}) turn.".format(
-                    self.gameAdapter.get_username_by_email(self.players[self.turn]),
-                    self.gameAdapter.gameMessageHandler.get_player_color(self.turn),
-                )
+                f"It's **{self.gameAdapter.get_username_by_email(self.players[self.turn])}**'s ({self.gameAdapter.gameMessageHandler.get_player_color(self.turn)}) turn."
             )
         self.broadcast_current_message()
         if self.players[self.turn] == self.gameAdapter.email:
@@ -1035,18 +995,12 @@ class GameInstance:
             self.broadcast(f"**{winner_name}** won! :tada:")
         for u in self.players:
             values = {"total_games": 1, "games_won": 0, "games_lost": 0, "games_drawn": 0}
-            if loser == "":
-                if u == winner:
-                    values.update({"games_won": 1})
-                elif winner == "draw":
-                    values.update({"games_drawn": 1})
-                else:
-                    values.update({"games_lost": 1})
+            if not loser and u == winner or loser != "" and u != loser:
+                values["games_won"] = 1
+            elif not loser and winner == "draw":
+                values["games_drawn"] = 1
             else:
-                if u == loser:
-                    values.update({"games_lost": 1})
-                else:
-                    values.update({"games_won": 1})
+                values["games_lost"] = 1
             self.gameAdapter.add_user_statistics(u, values)
         if self.gameAdapter.email in self.players:
             self.send_win_responses(winner)

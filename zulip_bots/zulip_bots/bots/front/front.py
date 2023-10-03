@@ -26,18 +26,16 @@ class FrontHandler:
 
     def initialize(self, bot_handler: BotHandler) -> None:
         config = bot_handler.get_config_info("front")
-        api_key = config.get("api_key")
-        if not api_key:
+        if api_key := config.get("api_key"):
+            self.auth = f"Bearer {api_key}"
+        else:
             raise KeyError("No API key specified.")
 
-        self.auth = "Bearer " + api_key
-
     def help(self, bot_handler: BotHandler) -> str:
-        response = ""
-        for command, description in self.COMMANDS:
-            response += f"`{command}` {description}\n"
-
-        return response
+        return "".join(
+            f"`{command}` {description}\n"
+            for command, description in self.COMMANDS
+        )
 
     def archive(self, bot_handler: BotHandler) -> str:
         response = requests.patch(
@@ -89,7 +87,7 @@ class FrontHandler:
 
     def comment(self, bot_handler: BotHandler, **kwargs: Any) -> str:
         response = requests.post(
-            self.FRONT_API.format(self.conversation_id) + "/comments",
+            f"{self.FRONT_API.format(self.conversation_id)}/comments",
             headers={"Authorization": self.auth},
             json=kwargs,
         )

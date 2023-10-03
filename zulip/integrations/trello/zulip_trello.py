@@ -60,9 +60,7 @@ def get_webhook_id(options, id_model):
     data = {
         "key": options.trello_api_key,
         "token": options.trello_token,
-        "description": "Webhook for Zulip integration (From Trello {} to Zulip)".format(
-            options.trello_board_name,
-        ),
+        "description": f"Webhook for Zulip integration (From Trello {options.trello_board_name} to Zulip)",
         "callbackURL": options.zulip_webhook_url,
         "idModel": id_model,
     }
@@ -95,15 +93,11 @@ def create_webhook(options):
     if id_model:
         print("Success! The idModel is", id_model)
 
-    id_webhook = get_webhook_id(options, id_model)
-
-    if id_webhook:
+    if id_webhook := get_webhook_id(options, id_model):
         print("Success! The webhook ID is", id_webhook)
 
     print(
-        "Success! The webhook for the {} Trello board was successfully created.".format(
-            options.trello_board_name
-        )
+        f"Success! The webhook for the {options.trello_board_name} Trello board was successfully created."
     )
 
 

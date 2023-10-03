@@ -66,7 +66,7 @@ def format_commit_lines(web_url: str, repo: repo, base: int, tip: int) -> str:
 
         commit_summaries.append(summary)
 
-    return "\n".join(summary for summary in commit_summaries)
+    return "\n".join(commit_summaries)
 
 
 def send_zulip(
@@ -77,7 +77,10 @@ def send_zulip(
     a bot in most cases.
     """
     client = zulip.Client(
-        email=email, api_key=api_key, site=site, client="ZulipMercurial/" + VERSION
+        email=email,
+        api_key=api_key,
+        site=site,
+        client=f"ZulipMercurial/{VERSION}",
     )
 
     message_data = {

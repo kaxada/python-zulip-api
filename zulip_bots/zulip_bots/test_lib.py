@@ -120,22 +120,20 @@ class BotTestCase(unittest.TestCase):
         tests can override this behavior by
         mocking/subclassing.
         """
-        message = dict(
+        return dict(
             display_recipient="foo_stream",
             sender_email="foo@example.com",
             sender_full_name="Foo Test User",
             sender_id="123",
             content=content,
         )
-        return message
 
     def get_reply_dict(self, request: str) -> Dict[str, Any]:
         bot, bot_handler = self._get_handlers()
         message = self.make_request_message(request)
         bot_handler.reset_transcript()
         bot.handle_message(message, bot_handler)
-        reply = bot_handler.unique_reply()
-        return reply
+        return bot_handler.unique_reply()
 
     def verify_reply(self, request: str, response: str) -> None:
         reply = self.get_reply_dict(request)

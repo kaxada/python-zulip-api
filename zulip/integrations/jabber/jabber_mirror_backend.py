@@ -54,7 +54,7 @@ __version__ = "1.1"
 
 
 def room_to_stream(room: str) -> str:
-    return room + "/xmpp"
+    return f"{room}/xmpp"
 
 
 def stream_to_room(stream: str) -> str:
@@ -62,9 +62,7 @@ def stream_to_room(stream: str) -> str:
 
 
 def jid_to_zulip(jid: JID) -> str:
-    suffix = ""
-    if not jid.username.endswith("-bot"):
-        suffix = options.zulip_email_suffix
+    suffix = "" if jid.username.endswith("-bot") else options.zulip_email_suffix
     return f"{jid.username}{suffix}@{options.zulip_domain}"
 
 
@@ -109,14 +107,14 @@ class JabberToZulipBot(ClientXMPP):
     def join_muc(self, room: str) -> None:
         if room in self.rooms:
             return
-        logging.debug("Joining " + room)
+        logging.debug(f"Joining {room}")
         self.rooms.add(room)
         muc_jid = JID(local=room, domain=options.conference_domain)
         xep0045 = self.plugin["xep_0045"]
         try:
             xep0045.joinMUC(muc_jid, self.nick, wait=True)
         except InvalidJID:
-            logging.error("Could not join room: " + str(muc_jid))
+            logging.error(f"Could not join room: {str(muc_jid)}")
             return
 
         # Configure the room.  Really, we should only do this if the room is
@@ -129,12 +127,12 @@ class JabberToZulipBot(ClientXMPP):
         if form:
             xep0045.configureRoom(muc_jid, form)
         else:
-            logging.error("Could not configure room: " + str(muc_jid))
+            logging.error(f"Could not configure room: {str(muc_jid)}")
 
     def leave_muc(self, room: str) -> None:
         if room not in self.rooms:
             return
-        logging.debug("Leaving " + room)
+        logging.debug(f"Leaving {room}")
         self.rooms.remove(room)
         muc_jid = JID(local=room, domain=options.conference_domain)
         self.plugin["xep_0045"].leaveMUC(muc_jid, self.nick)
@@ -434,7 +432,7 @@ option does not affect login credentials.""".replace(
         )
 
     zulipToJabber = ZulipToJabberBot(
-        zulip.init_from_options(options, "JabberMirror/" + __version__)
+        zulip.init_from_options(options, f"JabberMirror/{__version__}")
     )
     # This won't work for open realms that don't have a consistent domain
     options.zulip_domain = zulipToJabber.client.email.partition("@")[-1]

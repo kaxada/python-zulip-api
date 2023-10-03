@@ -26,9 +26,7 @@ class MerelsModel:
         self.token = ["O", "X"]
 
     def determine_game_over(self, players: List[str]) -> str:
-        if self.contains_winning_move(self.current_board):
-            return "current turn"
-        return ""
+        return "current turn" if self.contains_winning_move(self.current_board) else ""
 
     def contains_winning_move(self, board: Any) -> bool:
         merels = database.MerelsStorage(self.topic, self.storage)
@@ -63,7 +61,7 @@ class MerelsMessageHandler:
         return self.tokens[turn]
 
     def alert_move_message(self, original_player: str, move_info: str) -> str:
-        return original_player + " :" + move_info
+        return f"{original_player} :{move_info}"
 
     def game_start_message(self) -> str:
         return game.getHelp()

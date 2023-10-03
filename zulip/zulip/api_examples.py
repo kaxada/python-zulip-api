@@ -20,9 +20,7 @@ Prints the path to the Zulip API example scripts."""
         print(examples_path)
     else:
         raise OSError(
-            "Examples cannot be accessed at {}: {} does not exist!".format(
-                examples_path, "File" if args.script_name else "Directory"
-            )
+            f'Examples cannot be accessed at {examples_path}: {"File" if args.script_name else "Directory"} does not exist!'
         )
 
 

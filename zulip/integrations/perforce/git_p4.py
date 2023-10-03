@@ -85,9 +85,8 @@ def chdir(path, is_client_path=False):
 def die(msg):
     if verbose:
         raise Exception(msg)
-    else:
-        sys.stderr.write(msg + "\n")
-        sys.exit(1)
+    sys.stderr.write(msg + "\n")
+    sys.exit(1)
 
 def write_pipe(c, stdin):
     if verbose:
@@ -99,7 +98,7 @@ def write_pipe(c, stdin):
     val = pipe.write(stdin)
     pipe.close()
     if p.wait():
-        die('Command failed: %s' % str(c))
+        die(f'Command failed: {str(c)}')
 
     return val
 
@@ -116,7 +115,7 @@ def read_pipe(c, ignore_error=False):
     pipe = p.stdout
     val = pipe.read()
     if p.wait() and not ignore_error:
-        die('Command failed: %s' % str(c))
+        die(f'Command failed: {str(c)}')
 
     return val
 
@@ -133,7 +132,7 @@ def read_pipe_lines(c):
     pipe = p.stdout
     val = pipe.readlines()
     if pipe.close() or p.wait():
-        die('Command failed: %s' % str(c))
+        die(f'Command failed: {str(c)}')
 
     return val
 
@@ -163,27 +162,20 @@ def p4_has_move_command():
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (out, err) = p.communicate()
     # return code will be 1 in either case
-    if err.find("Invalid option") >= 0:
-        return False
-    if err.find("disabled") >= 0:
-        return False
-    # assume it failed because @... was invalid changelist
-    return True
+    return False if err.find("Invalid option") >= 0 else err.find("disabled") < 0
 
 def system(cmd):
     expand = isinstance(cmd, str)
     if verbose:
         sys.stderr.write("executing %s\n" % str(cmd))
-    retcode = subprocess.call(cmd, shell=expand)
-    if retcode:
+    if retcode := subprocess.call(cmd, shell=expand):
         raise CalledProcessError(retcode, cmd)
 
 def p4_system(cmd):
     """Specifically invoke p4 as the system command. """
     real_cmd = p4_build_cmd(cmd)
     expand = isinstance(real_cmd, str)
-    retcode = subprocess.call(real_cmd, shell=expand)
-    if retcode:
+    if retcode := subprocess.call(real_cmd, shell=expand):
         raise CalledProcessError(retcode, real_cmd)
 
 _p4_version_string = None
@@ -283,9 +275,7 @@ def split_p4_type(p4type):
     mods = ""
     s = p4type.split("+")
     base = s[0]
-    mods = ""
-    if len(s) > 1:
-        mods = s[1]
+    mods = s[1] if len(s) > 1 else ""
     return (base, mods)
 
 #
@@ -300,23 +290,24 @@ def p4_type(file):
 # the keywords that can be expanded in the file
 #
 def p4_keywords_regexp_for_type(base, type_mods):
-    if base in ("text", "unicode", "binary"):
-        kwords = None
-        if "ko" in type_mods:
-            kwords = 'Id|Header'
-        elif "k" in type_mods:
-            kwords = 'Id|Header|Author|Date|DateTime|Change|File|Revision'
-        else:
-            return None
-        pattern = r"""
+    if base not in ("text", "unicode", "binary"):
+        return None
+    kwords = None
+    if "ko" in type_mods:
+        kwords = 'Id|Header'
+    elif "k" in type_mods:
+        kwords = 'Id|Header|Author|Date|DateTime|Change|File|Revision'
+    else:
+        return None
+    return (
+        r"""
             \$              # Starts with a dollar, followed by...
             (%s)            # one of the keywords, followed by...
             (:[^$\n]+)?     # possibly an old expansion, followed by...
             \$              # another dollar
-            """ % kwords
-        return pattern
-    else:
-        return None
+            """
+        % kwords
+    )
 
 #
 # Given a file, return a regexp matching the possible
@@ -326,9 +317,8 @@ def p4_keywords_regexp_for_type(base, type_mods):
 def p4_keywords_regexp_for_file(file):
     if not os.path.exists(file):
         return None
-    else:
-        (type_base, type_mods) = split_p4_type(p4_type(file))
-        return p4_keywords_regexp_for_type(type_base, type_mods)
+    (type_base, type_mods) = split_p4_type(p4_type(file))
+    return p4_keywords_regexp_for_type(type_base, type_mods)
 
 def setP4ExecBit(file, mode):
     # Reopens an already open file and changes the execute bit to match
@@ -341,7 +331,7 @@ def setP4ExecBit(file, mode):
         p4Type = re.sub(r'^([cku]?)x(.*)', '\\1\\2', p4Type)
         p4Type = re.sub(r'(.*?\+.*?)x(.*?)', '\\1\\2', p4Type)
         if p4Type[-1] == "+":
-            p4Type = p4Type[0:-1]
+            p4Type = p4Type[:-1]
 
     p4_reopen(p4Type, file)
 
@@ -349,11 +339,10 @@ def getP4OpenedType(file):
     # Returns the perforce file type for the given file.
 
     result = p4_read_pipe(["opened", wildcard_encode(file)])
-    match = re.match(".*\\((.+)\\)\r?$", result)
-    if match:
+    if match := re.match(".*\\((.+)\\)\r?$", result):
         return match.group(1)
     else:
-        die("Could not determine file type for %s (result: '%s')" % (file, result))
+        die(f"Could not determine file type for {file} (result: '{result}')")
 
 # Return the set of all p4 labels
 def getP4Labels(depotPaths):
@@ -361,7 +350,7 @@ def getP4Labels(depotPaths):
     if isinstance(depotPaths, str):
         depotPaths = [depotPaths]
 
-    for l in p4CmdList(["labels"] + ["%s..." % p for p in depotPaths]):
+    for l in p4CmdList(["labels"] + [f"{p}..." for p in depotPaths]):
         label = l['label']
         labels.add(label)
 
@@ -401,8 +390,7 @@ def parseDiffTreeEntry(entry):
 
     If the pattern is not matched, None is returned."""
 
-    match = diffTreePattern().next().match(entry)
-    if match:
+    if match := diffTreePattern().next().match(entry):
         return {
             'src_mode': match.group(1),
             'dst_mode': match.group(2),
@@ -426,7 +414,7 @@ def isModeExecChanged(src_mode, dst_mode):
 def p4CmdList(cmd, stdin=None, stdin_mode='w+b', cb=None):
 
     if isinstance(cmd, str):
-        cmd = "-G " + cmd
+        cmd = f"-G {cmd}"
         expand = True
     else:
         cmd = ["-G"] + cmd
@@ -483,7 +471,7 @@ def p4Cmd(cmd):
 def p4Where(depotPath):
     if not depotPath.endswith("/"):
         depotPath += "/"
-    depotPath = depotPath + "..."
+    depotPath = f"{depotPath}..."
     outputList = p4CmdList(["where", depotPath])
     output = None
     for entry in outputList:
@@ -497,7 +485,7 @@ def p4Where(depotPath):
             if data[:space] == depotPath:
                 output = entry
                 break
-    if output == None:
+    if output is None:
         return ""
     if output["code"] == "error":
         return ""
@@ -517,13 +505,14 @@ def currentGitBranch():
     return read_pipe("git name-rev HEAD").split(" ")[1].strip()
 
 def isValidGitDir(path):
-    if (os.path.exists(path + "/HEAD")
-        and os.path.exists(path + "/refs") and os.path.exists(path + "/objects")):
-        return True;
-    return False
+    return bool(
+        os.path.exists(f"{path}/HEAD")
+        and os.path.exists(f"{path}/refs")
+        and os.path.exists(f"{path}/objects")
+    )
 
 def parseRevision(ref):
-    return read_pipe("git rev-parse %s" % ref).strip()
+    return read_pipe(f"git rev-parse {ref}").strip()
 
 def branchExists(ref):
     rev = read_pipe(["git", "rev-parse", "-q", "--verify", ref],
@@ -535,13 +524,13 @@ def extractLogMessageFromGitCommit(commit):
 
     ## fixme: title is first line of commit, not 1st paragraph.
     foundTitle = False
-    for log in read_pipe_lines("git cat-file commit %s" % commit):
-       if not foundTitle:
-           if len(log) == 1:
-               foundTitle = True
-           continue
+    for log in read_pipe_lines(f"git cat-file commit {commit}"):
+        if not foundTitle:
+            if len(log) == 1:
+                foundTitle = True
+            continue
 
-       logMessage += log
+        logMessage += log
     return logMessage
 
 def extractSettingsGitLog(log):
@@ -610,12 +599,9 @@ def p4BranchesInGit(branchesAreInRemotes=True):
 
     branches = {}
 
-    cmdline = "git rev-parse --symbolic "
-    if branchesAreInRemotes:
-        cmdline += "--remotes"
-    else:
-        cmdline += "--branches"
-
+    cmdline = "git rev-parse --symbolic " + (
+        "--remotes" if branchesAreInRemotes else "--branches"
+    )
     for line in read_pipe_lines(cmdline):
         line = line.strip()
 
@@ -639,10 +625,7 @@ def branch_exists(branch):
     cmd = [ "git", "rev-parse", "--symbolic", "--verify", branch ]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, _ = p.communicate()
-    if p.returncode:
-        return False
-    # expect exactly one line of output: the branch name
-    return out.rstrip() == branch
+    return False if p.returncode else out.rstrip() == branch
 
 def findUpstreamBranchPoint(head = "HEAD"):
     branches = p4BranchesInGit()
@@ -654,12 +637,11 @@ def findUpstreamBranchPoint(head = "HEAD"):
         settings = extractSettingsGitLog(log)
         if "depot-paths" in settings:
             paths = ",".join(settings["depot-paths"])
-            branchByDepotPath[paths] = "remotes/p4/" + branch
+            branchByDepotPath[paths] = f"remotes/p4/{branch}"
 
     settings = None
-    parent = 0
-    while parent < 65535:
-        commit = head + "~%s" % parent
+    for parent in range(65535):
+        commit = f"{head}~{parent}"
         log = extractLogMessageFromGitCommit(commit)
         settings = extractSettingsGitLog(log)
         if "depot-paths" in settings:
@@ -667,14 +649,13 @@ def findUpstreamBranchPoint(head = "HEAD"):
             if paths in branchByDepotPath:
                 return [branchByDepotPath[paths], settings]
 
-        parent = parent + 1
-
     return ["", settings]
 
 def createOrUpdateBranchesFromOrigin(localRefPrefix = "refs/remotes/p4/", silent=True):
     if not silent:
-        print ("Creating/updating branch(es) in %s based on origin branch(es)"
-               % localRefPrefix)
+        print(
+            f"Creating/updating branch(es) in {localRefPrefix} based on origin branch(es)"
+        )
 
     originPrefix = "origin/p4/"
 
@@ -695,19 +676,18 @@ def createOrUpdateBranchesFromOrigin(localRefPrefix = "refs/remotes/p4/", silent
         update = False
         if not gitBranchExists(remoteHead):
             if verbose:
-                print("creating %s" % remoteHead)
+                print(f"creating {remoteHead}")
             update = True
         else:
             settings = extractSettingsGitLog(extractLogMessageFromGitCommit(remoteHead))
             if ('change' in settings) > 0:
                 if settings['depot-paths'] == original['depot-paths']:
-                    originP4Change = int(original['change'])
                     p4Change = int(settings['change'])
+                    originP4Change = int(original['change'])
                     if originP4Change > p4Change:
-                        print ("%s (%s) is newer than %s (%s). "
-                               "Updating p4 branch from origin."
-                               % (originHead, originP4Change,
-                                  remoteHead, p4Change))
+                        print(
+                            f"{originHead} ({originP4Change}) is newer than {remoteHead} ({p4Change}). Updating p4 branch from origin."
+                        )
                         update = True
                 else:
                     print ("Ignoring: %s was imported from %s while "
@@ -716,7 +696,7 @@ def createOrUpdateBranchesFromOrigin(localRefPrefix = "refs/remotes/p4/", silent
                               remoteHead, ','.join(settings['depot-paths'])))
 
         if update:
-            system("git update-ref %s %s" % (remoteHead, originHead))
+            system(f"git update-ref {remoteHead} {originHead}")
 
 def originP4BranchesExist():
         return gitBranchExists("origin") or gitBranchExists("origin/p4") or gitBranchExists("origin/p4/master")
@@ -725,7 +705,7 @@ def p4ChangesForPaths(depotPaths, changeRange):
     assert depotPaths
     cmd = ['changes']
     for p in depotPaths:
-        cmd += ["%s...%s" % (p, changeRange)]
+        cmd += [f"{p}...{changeRange}"]
     output = p4_read_pipe_lines(cmd)
 
     changes = {}
@@ -733,8 +713,7 @@ def p4ChangesForPaths(depotPaths, changeRange):
         changeNum = int(line.split(" ")[1])
         changes[changeNum] = True
 
-    changelist = sorted(changes.keys())
-    return changelist
+    return sorted(changes.keys())
 
 def p4PathStartsWith(path, prefix):
     # This method tries to remedy a potential mixed-case issue:
@@ -773,7 +752,7 @@ def getClientSpec():
     for view_num in range(len(view_keys)):
         k = "View%d" % view_num
         if k not in view_keys:
-            die("Expected view key %s missing" % k)
+            die(f"Expected view key {k} missing")
         view.append(entry[k])
 
     return view
@@ -801,7 +780,7 @@ def wildcard_decode(path):
     # that fixing it does not inadvertently create new %-escapes.
     # Cannot have * in a filename in windows; untested as to
     # what p4 would do in such a case.
-    if not platform.system() == "Windows":
+    if platform.system() != "Windows":
         path = path.replace("%2A", "*")
     path = path.replace("%23", "#") \
                .replace("%40", "@") \
@@ -845,14 +824,11 @@ class P4UserMap:
     def p4UserIsMe(self, p4User):
         # return True if the given p4 user is actually me
         me = self.p4UserId()
-        if not p4User or p4User != me:
-            return False
-        else:
-            return True
+        return bool(p4User and p4User == me)
 
     def getUserCacheFilename(self):
         home = os.environ.get("HOME", os.environ.get("USERPROFILE"))
-        return home + "/.gitp4-usercache.txt"
+        return f"{home}/.gitp4-usercache.txt"
 
     def getUserMapFromPerforceServer(self):
         if self.userMapFromPerforceServer:
@@ -866,10 +842,10 @@ class P4UserMap:
             self.users[output["User"]] = output["FullName"] + " <" + output["Email"] + ">"
             self.emails[output["Email"]] = output["User"]
 
-        s = ''
-        for (key, val) in self.users.items():
-            s += "%s\t%s\n" % (key.expandtabs(1), val.expandtabs(1))
-
+        s = ''.join(
+            "%s\t%s\n" % (key.expandtabs(1), val.expandtabs(1))
+            for key, val in self.users.items()
+        )
         open(self.getUserCacheFilename(), "wb").write(s)
         self.userMapFromPerforceServer = True
 
@@ -877,9 +853,8 @@ class P4UserMap:
         self.users = {}
         self.userMapFromPerforceServer = False
         try:
-            cache = open(self.getUserCacheFilename(), "rb")
-            lines = cache.readlines()
-            cache.close()
+            with open(self.getUserCacheFilename(), "rb") as cache:
+                lines = cache.readlines()
             for line in lines:
                 entry = line.strip().split("\t")
                 self.users[entry[0]] = entry[1]
@@ -894,10 +869,8 @@ class P4Debug(Command):
         self.needsGit = False
 
     def run(self, args):
-        j = 0
-        for output in p4CmdList(args):
+        for j, output in enumerate(p4CmdList(args)):
             print('Element: %d' % j)
-            j += 1
             print(output)
         return True
 
@@ -937,16 +910,27 @@ class P4RollBack(Command):
 
                 changed = False
 
-                if len(p4Cmd("changes -m 1 "  + ' '.join (['%s...@%s' % (p, maxChange)
-                                                           for p in depotPaths]))) == 0:
-                    print("Branch %s did not exist at change %s, deleting." % (ref, maxChange))
-                    system("git update-ref -d %s `git rev-parse %s`" % (ref, ref))
+                if (
+                    len(
+                        p4Cmd(
+                            (
+                                "changes -m 1 "
+                                + ' '.join(
+                                    [f'{p}...@{maxChange}' for p in depotPaths]
+                                )
+                            )
+                        )
+                    )
+                    == 0
+                ):
+                    print(f"Branch {ref} did not exist at change {maxChange}, deleting.")
+                    system(f"git update-ref -d {ref} `git rev-parse {ref}`")
                     continue
 
                 while change and int(change) > maxChange:
                     changed = True
                     if self.verbose:
-                        print("%s is at %s ; rewinding towards %s" % (ref, change, maxChange))
+                        print(f"{ref} is at {change} ; rewinding towards {maxChange}")
                     system("git update-ref %s \"%s^\"" % (ref, ref))
                     log = extractLogMessageFromGitCommit(ref)
                     settings =  extractSettingsGitLog(log)
@@ -955,7 +939,7 @@ class P4RollBack(Command):
                     change = settings['change']
 
                 if changed:
-                    print("%s rewound to %s" % (ref, change))
+                    print(f"{ref} rewound to {change}")
 
         return True
 
@@ -1040,12 +1024,11 @@ class P4Submit(Command, P4UserMap):
                         result += jobs + "\n"
                 else:
                     continue
-            else:
-                if line.startswith("Description:"):
-                    inDescriptionSection = True
-                    line += "\n"
-                    for messageLine in message.split("\n"):
-                        line += "\t" + messageLine + "\n"
+            elif line.startswith("Description:"):
+                inDescriptionSection = True
+                line += "\n"
+                for messageLine in message.split("\n"):
+                    line += "\t" + messageLine + "\n"
 
             result += line + "\n"
 
@@ -1056,12 +1039,11 @@ class P4Submit(Command, P4UserMap):
         (handle, outFileName) = tempfile.mkstemp(dir='.')
         try:
             outFile = os.fdopen(handle, "w+")
-            inFile = open(file)
-            regexp = re.compile(pattern, re.VERBOSE)
-            for line in inFile.readlines():
-                line = regexp.sub(r'$\1$', line)
-                outFile.write(line)
-            inFile.close()
+            with open(file) as inFile:
+                regexp = re.compile(pattern, re.VERBOSE)
+                for line in inFile:
+                    line = regexp.sub(r'$\1$', line)
+                    outFile.write(line)
             outFile.close()
             # Forcibly overwrite the original file
             os.unlink(file)
@@ -1069,10 +1051,10 @@ class P4Submit(Command, P4UserMap):
         except:
             # cleanup our temporary file
             os.unlink(outFileName)
-            print("Failed to strip RCS keywords in %s" % file)
+            print(f"Failed to strip RCS keywords in {file}")
             raise
 
-        print("Patched up RCS keywords in %s" % file)
+        print(f"Patched up RCS keywords in {file}")
 
     def p4UserForCommit(self, id):
         # Return the tuple (perforce user,git email) for a given git commit id
@@ -1090,9 +1072,9 @@ class P4Submit(Command, P4UserMap):
         for id in commits:
             (user, email) = self.p4UserForCommit(id)
             if not user:
-                msg = "Cannot find p4 user for email %s in commit %s." % (email, id)
+                msg = f"Cannot find p4 user for email {email} in commit {id}."
                 if gitConfigBool("git-p4.allowMissingP4Users"):
-                    print("%s" % msg)
+                    print(f"{msg}")
                 else:
                     die("Error: %s\nSet git-p4.allowMissingP4Users to true to allow this." % msg)
 
@@ -1102,11 +1084,7 @@ class P4Submit(Command, P4UserMap):
         # client spec is being used by multiple processes then this might go
         # wrong.
         results = p4CmdList("client -o")        # find the current client
-        client = None
-        for r in results:
-            if 'Client' in r:
-                client = r['Client']
-                break
+        client = next((r['Client'] for r in results if 'Client' in r), None)
         if not client:
             die("could not get client spec")
         results = p4CmdList(["changes", "-c", client, "-m", "1"])
@@ -1117,10 +1095,9 @@ class P4Submit(Command, P4UserMap):
 
     def modifyChangelistUser(self, changelist, newUser):
         # fixup the user field of a changelist after it has been submitted.
-        changes = p4CmdList("change -o %s" % changelist)
+        changes = p4CmdList(f"change -o {changelist}")
         if len(changes) != 1:
-            die("Bad output from p4 change modifying %s to user %s" %
-                (changelist, newUser))
+            die(f"Bad output from p4 change modifying {changelist} to user {newUser}")
 
         c = changes[0]
         if c['User'] == newUser: return   # nothing to do
@@ -1131,11 +1108,13 @@ class P4Submit(Command, P4UserMap):
         for r in result:
             if 'code' in r:
                 if r['code'] == 'error':
-                    die("Could not modify user field of changelist %s to %s:%s" % (changelist, newUser, r['data']))
+                    die(
+                        f"Could not modify user field of changelist {changelist} to {newUser}:{r['data']}"
+                    )
             if 'data' in r:
-                print("Updated user field for changelist %s to %s" % (changelist, newUser))
+                print(f"Updated user field for changelist {changelist} to {newUser}")
                 return
-        die("Could not modify user field of changelist %s to %s" % (changelist, newUser))
+        die(f"Could not modify user field of changelist {changelist} to {newUser}")
 
     def canChangeChangelists(self):
         # check to see if we have p4 admin or super-user permissions, either of
@@ -1173,9 +1152,8 @@ class P4Submit(Command, P4UserMap):
                             continue
                 else:
                     inFilesSection = False
-            else:
-                if line.startswith("Files:"):
-                    inFilesSection = True
+            elif line.startswith("Files:"):
+                inFilesSection = True
 
             template += line
 
@@ -1198,7 +1176,7 @@ class P4Submit(Command, P4UserMap):
             editor = os.environ.get("P4EDITOR")
         else:
             editor = read_pipe("git var GIT_EDITOR").strip()
-        system(editor + " " + template_file)
+        system(f"{editor} {template_file}")
 
         # If the file was not saved, prompt to see if this patch should
         # be skipped.  But skip this verification step if configured so.

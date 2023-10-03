@@ -16,8 +16,7 @@ def version() -> str:
         version_line = next(
             itertools.dropwhile(lambda x: not x.startswith("__version__"), in_handle)
         )
-    version = version_line.split("=")[-1].strip().replace('"', "")
-    return version
+    return version_line.split("=")[-1].strip().replace('"', "")
 
 
 def recur_expand(target_root: Any, dir: Any) -> Generator[Tuple[str, List[str]], None, None]:

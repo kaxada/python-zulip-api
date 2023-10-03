@@ -34,7 +34,7 @@ class IRCBot(irc.bot.SingleServerIRCBot):
 
     def zulip_sender(self, sender_string: str) -> str:
         nick = sender_string.split("!")[0]
-        return nick + "@" + self.IRC_DOMAIN
+        return f"{nick}@{self.IRC_DOMAIN}"
 
     def connect(self, *args: Any, **kwargs: Any) -> None:
         # Taken from
@@ -46,13 +46,12 @@ class IRCBot(irc.bot.SingleServerIRCBot):
     def check_subscription_or_die(self) -> None:
         resp = self.zulip_client.get_subscriptions()
         if resp["result"] != "success":
-            print("ERROR: {}".format(resp["msg"]))
+            print(f'ERROR: {resp["msg"]}')
             exit(1)
         subs = [s["name"] for s in resp["subscriptions"]]
         if self.stream not in subs:
             print(
-                "The bot is not yet subscribed to stream '%s'. Please subscribe the bot to the stream first."
-                % (self.stream,)
+                f"The bot is not yet subscribed to stream '{self.stream}'. Please subscribe the bot to the stream first."
             )
             exit(1)
 
@@ -98,7 +97,7 @@ class IRCBot(irc.bot.SingleServerIRCBot):
     def on_privmsg(self, c: ServerConnection, e: Event) -> None:
         content = e.arguments[0]
         sender = self.zulip_sender(e.source)
-        if sender.endswith("_zulip@" + self.IRC_DOMAIN):
+        if sender.endswith(f"_zulip@{self.IRC_DOMAIN}"):
             return
 
         # Forward the PM to Zulip
@@ -116,7 +115,7 @@ class IRCBot(irc.bot.SingleServerIRCBot):
     def on_pubmsg(self, c: ServerConnection, e: Event) -> None:
         content = e.arguments[0]
         sender = self.zulip_sender(e.source)
-        if sender.endswith("_zulip@" + self.IRC_DOMAIN):
+        if sender.endswith(f"_zulip@{self.IRC_DOMAIN}"):
             return
 
         # Forward the stream message to Zulip
@@ -132,7 +131,7 @@ class IRCBot(irc.bot.SingleServerIRCBot):
         )
 
     def on_dccmsg(self, c: ServerConnection, e: Event) -> None:
-        c.privmsg("You said: " + e.arguments[0])
+        c.privmsg(f"You said: {e.arguments[0]}")
 
     def on_dccchat(self, c: ServerConnection, e: Event) -> None:
         if len(e.arguments) != 2:

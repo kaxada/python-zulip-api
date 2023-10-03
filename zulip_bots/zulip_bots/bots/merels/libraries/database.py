@@ -70,9 +70,15 @@ class MerelsStorage:
         except (json.decoder.JSONDecodeError, KeyError):
             select = ""
 
-        if select == "":
+        if not select:
             return None
         else:
-            res = (topic_name, select[0], select[1], select[2], select[3], select[4], select[5])
-
-            return res
+            return (
+                topic_name,
+                select[0],
+                select[1],
+                select[2],
+                select[3],
+                select[4],
+                select[5],
+            )

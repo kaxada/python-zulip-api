@@ -42,15 +42,13 @@ class WitaiHandler:
         self.client = wit.Wit(token)
 
     def handle_message(self, message: Dict[str, str], bot_handler: BotHandler) -> None:
-        if message["content"] == "" or message["content"] == "help":
+        if message["content"] in ["", "help"]:
             bot_handler.send_reply(message, self.help_message)
             return
 
         try:
             res = self.client.message(message["content"])
-            message_for_user = self.handle(res)
-
-            if message_for_user:
+            if message_for_user := self.handle(res):
                 bot_handler.send_reply(message, message_for_user)
         except wit.wit.WitError:
             bot_handler.send_reply(message, "Sorry, I don't know how to respond to that!")

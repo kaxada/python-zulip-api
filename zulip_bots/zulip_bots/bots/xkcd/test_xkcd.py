@@ -50,7 +50,6 @@ class TestXkcdBot(BotTestCase, DefaultTests):
                 self.verify_reply(comic_id, invalid_id_txt + comic_id)
 
     def test_help_responses(self) -> None:
-        help_txt = "xkcd bot supports these commands:"
         err_txt = "xkcd bot only supports these commands, not `{}`:"
         commands = """
 * `{0} help` to show this help message.
@@ -60,6 +59,6 @@ class TestXkcdBot(BotTestCase, DefaultTests):
             "@**test-bot**"
         )
         self.verify_reply("", err_txt.format("") + commands)
-        self.verify_reply("help", help_txt + commands)
+        self.verify_reply("help", f"xkcd bot supports these commands:{commands}")
         # Example invalid command
         self.verify_reply("x", err_txt.format("x") + commands)

@@ -100,21 +100,18 @@ def dbx_command(client: Any, cmd: str) -> str:
         return "ERROR: unrecognized command\n" + get_help()
     f, arg_names = commands[cmd_name]
     partial_regexes = [REGEXES[a] for a in arg_names]
-    regex = " ".join(partial_regexes)
-    regex += "$"
-    m = re.match(regex, cmd_args)
-    if m:
+    regex = " ".join(partial_regexes) + "$"
+    if m := re.match(regex, cmd_args):
         return f(client, *m.groups())
     else:
-        return "ERROR: " + syntax_help(cmd_name)
+        return f"ERROR: {syntax_help(cmd_name)}"
 
 
 def syntax_help(cmd_name: str) -> str:
     commands = get_commands()
     f, arg_names = commands[cmd_name]
-    arg_syntax = " ".join("<" + a + ">" for a in arg_names)
-    if arg_syntax:
-        cmd = cmd_name + " " + arg_syntax
+    if arg_syntax := " ".join(f"<{a}>" for a in arg_names):
+        cmd = f"{cmd_name} {arg_syntax}"
     else:
         cmd = cmd_name
     return f"syntax: {cmd}"
@@ -129,10 +126,10 @@ def dbx_usage(client: Any) -> str:
 
 
 def dbx_mkdir(client: Any, fn: str) -> str:
-    fn = "/" + fn  # foo/boo -> /foo/boo
+    fn = f"/{fn}"
     try:
         result = client.files_create_folder(fn)
-        msg = "CREATED FOLDER: " + URL.format(name=result.name, path=result.path_lower)
+        msg = f"CREATED FOLDER: {URL.format(name=result.name, path=result.path_lower)}"
     except Exception:
         msg = (
             "Please provide a correct folder path and name.\n"
@@ -144,16 +141,16 @@ def dbx_mkdir(client: Any, fn: str) -> str:
 
 def dbx_ls(client: Any, fn: str) -> str:
     if fn != "":
-        fn = "/" + fn
+        fn = f"/{fn}"
 
     try:
         result = client.files_list_folder(fn)
-        files_list = []  # type: List[str]
-        for meta in result.entries:
-            files_list += [" - " + URL.format(name=meta.name, path=meta.path_lower)]
-
+        files_list = [
+            f" - {URL.format(name=meta.name, path=meta.path_lower)}"
+            for meta in result.entries
+        ]
         msg = "\n".join(files_list)
-        if msg == "":
+        if not msg:
             msg = "`No files available`"
 
     except Exception:
@@ -167,11 +164,11 @@ def dbx_ls(client: Any, fn: str) -> str:
 
 
 def dbx_rm(client: Any, fn: str) -> str:
-    fn = "/" + fn
+    fn = f"/{fn}"
 
     try:
         result = client.files_delete(fn)
-        msg = "DELETED File/Folder : " + URL.format(name=result.name, path=result.path_lower)
+        msg = f"DELETED File/Folder : {URL.format(name=result.name, path=result.path_lower)}"
     except Exception:
         msg = (
             "Please provide a correct folder path and name.\n"
@@ -181,11 +178,11 @@ def dbx_rm(client: Any, fn: str) -> str:
 
 
 def dbx_write(client: Any, fn: str, content: str) -> str:
-    fn = "/" + fn
+    fn = f"/{fn}"
 
     try:
         result = client.files_upload(content.encode(), fn)
-        msg = "Written to file: " + URL.format(name=result.name, path=result.path_lower)
+        msg = f"Written to file: {URL.format(name=result.name, path=result.path_lower)}"
     except Exception:
         msg = "Incorrect file path or file already exists.\nUsage: `write <filename> CONTENT`"
 
@@ -193,7 +190,7 @@ def dbx_write(client: Any, fn: str, content: str) -> str:
 
 
 def dbx_read(client: Any, fn: str) -> str:
-    fn = "/" + fn
+    fn = f"/{fn}"
 
     try:
         result = client.files_download(fn)
@@ -207,20 +204,17 @@ def dbx_read(client: Any, fn: str) -> str:
 
 
 def dbx_search(client: Any, query: str, folder: str, max_results: str) -> str:
-    if folder is None:
-        folder = ""
-    else:
-        folder = "/" + folder
+    folder = "" if folder is None else f"/{folder}"
     if max_results is None:
         max_results = "20"
     try:
         result = client.files_search(folder, query, max_results=int(max_results))
         msg_list = []
-        count = 0
         for entry in result.matches:
             file_info = entry.metadata
-            count += 1
-            msg_list += [" - " + URL.format(name=file_info.name, path=file_info.path_lower)]
+            msg_list += [
+                f" - {URL.format(name=file_info.name, path=file_info.path_lower)}"
+            ]
         msg = "\n".join(msg_list)
 
     except Exception:
@@ -230,7 +224,7 @@ def dbx_search(client: Any, query: str, folder: str, max_results: str) -> str:
             "     `--fd <folderName>` to search in specific folder."
         )
 
-    if msg == "":
+    if not msg:
         msg = (
             "No files/folders found matching your query.\n"
             "For file name searching, the last token is used for prefix matching"
@@ -241,7 +235,7 @@ def dbx_search(client: Any, query: str, folder: str, max_results: str) -> str:
 
 
 def dbx_share(client: Any, fn: str):
-    fn = "/" + fn
+    fn = f"/{fn}"
     try:
         result = client.sharing_create_shared_link(fn)
         msg = result.url

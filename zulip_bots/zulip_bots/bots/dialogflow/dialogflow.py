@@ -14,7 +14,7 @@ Simply send this bot a message, and it will respond depending on the configured 
 
 
 def get_bot_result(message_content: str, config: Dict[str, str], sender_id: str) -> str:
-    if message_content.strip() == "" or message_content.strip() == "help":
+    if message_content.strip() in {"", "help"}:
         return config["bot_info"]
     ai = apiai.ApiAI(config["key"])
     try:
@@ -25,9 +25,7 @@ def get_bot_result(message_content: str, config: Dict[str, str], sender_id: str)
         res_str = response.read().decode("utf8", "ignore")
         res_json = json.loads(res_str)
         if res_json["status"]["errorType"] != "success" and "result" not in res_json.keys():
-            return "Error {}: {}.".format(
-                res_json["status"]["code"], res_json["status"]["errorDetails"]
-            )
+            return f'Error {res_json["status"]["code"]}: {res_json["status"]["errorDetails"]}.'
         if res_json["result"]["fulfillment"]["speech"] == "":
             if "alternateResult" in res_json.keys():
                 if res_json["alternateResult"]["fulfillment"]["speech"] != "":

@@ -30,21 +30,19 @@ client = zulip.Client(
     email=config.ZULIP_USER,
     site=config.ZULIP_SITE,
     api_key=config.ZULIP_API_KEY,
-    client="ZulipSVN/" + VERSION,
-)  # type: zulip.Client
+    client=f"ZulipSVN/{VERSION}",
+)
 svn = pysvn.Client()  # type: pysvn.Client
 
 path, rev = sys.argv[1:]
 
 # since its a local path, prepend "file://"
-path = "file://" + path
+path = f"file://{path}"
 
 entry = svn.log(path, revision_end=pysvn.Revision(pysvn.opt_revision_kind.number, rev))[
     0
 ]  # type: Dict[str, Any]
-message = "**{}** committed revision r{} to `{}`.\n\n> {}".format(
-    entry["author"], rev, path.split("/")[-1], entry["revprops"]["svn:log"]
-)
+message = f'**{entry["author"]}** committed revision r{rev} to `{path.split("/")[-1]}`.\n\n> {entry["revprops"]["svn:log"]}'
 
 destination = config.commit_notice_destination(path, rev)
 

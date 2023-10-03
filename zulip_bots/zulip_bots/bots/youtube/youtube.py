@@ -45,7 +45,7 @@ class YoutubeHandler:
 
     def handle_message(self, message: Dict[str, str], bot_handler: BotHandler) -> None:
 
-        if message["content"] == "" or message["content"] == "help":
+        if message["content"] in ["", "help"]:
             bot_handler.send_reply(message, self.help_content)
         else:
             cmd, query = get_command_query(message)
@@ -56,7 +56,6 @@ class YoutubeHandler:
 
 def search_youtube(query: str, key: str, region: str, max_results: int = 1) -> List[List[str]]:
 
-    videos = []
     params = {
         "part": "id,snippet",
         "maxResults": max_results,
@@ -75,22 +74,20 @@ def search_youtube(query: str, key: str, region: str, max_results: int = 1) -> L
         raise
     r.raise_for_status()
     search_response = r.json()
-    # Add each result to the appropriate list, and then display the lists of
-    # matching videos, channels, and playlists.
-    for search_result in search_response.get("items", []):
-        if search_result["id"]["kind"] == "youtube#video":
-            videos.append([search_result["snippet"]["title"], search_result["id"]["videoId"]])
-    return videos
+    return [
+        [search_result["snippet"]["title"], search_result["id"]["videoId"]]
+        for search_result in search_response.get("items", [])
+        if search_result["id"]["kind"] == "youtube#video"
+    ]
 
 
 def get_command_query(message: Dict[str, str]) -> Tuple[Optional[str], str]:
     blocks = message["content"].lower().split()
     command = blocks[0]
-    if command in commands_list:
-        query = message["content"][len(command) + 1 :].lstrip()
-        return command, query
-    else:
+    if command not in commands_list:
         return None, message["content"]
+    query = message["content"][len(command) + 1 :].lstrip()
+    return command, query
 
 
 def get_bot_response(
@@ -116,12 +113,10 @@ def get_bot_response(
     except (ConnectionError, HTTPError):
         return "Uh-Oh, couldn't process the request " "right now.\nPlease again later"
 
-    reply = "Here is what I found for `" + query + "` : "
+    reply = f"Here is what I found for `{query}` : "
 
     if len(video_list) == 0:
-        return (
-            "Oops ! Sorry I couldn't find any video for  `" + query + "` :slightly_frowning_face:"
-        )
+        return f"Oops ! Sorry I couldn't find any video for  `{query}` :slightly_frowning_face:"
     elif len(video_list) == 1:
         return (
             reply
@@ -130,7 +125,7 @@ def get_bot_response(
         ).strip()
 
     for title, id in video_list:
-        reply = reply + f"\n * {title} - [Watch now](https://www.youtube.com/watch/{id})"
+        reply = f"{reply}\n * {title} - [Watch now](https://www.youtube.com/watch/{id})"
     # Using link https://www.youtube.com/watch/<id> to
     # prevent showing multiple previews
     return reply

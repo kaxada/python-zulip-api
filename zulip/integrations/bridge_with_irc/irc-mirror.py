@@ -46,15 +46,14 @@ if __name__ == "__main__":
     except ImportError:
         traceback.print_exc()
         print(
-            "You have unsatisfied dependencies. Install all missing dependencies with "
-            "{} --provision".format(sys.argv[0])
+            f"You have unsatisfied dependencies. Install all missing dependencies with {sys.argv[0]} --provision"
         )
         sys.exit(1)
 
     if options.irc_server is None or options.nick_prefix is None or options.channel is None:
         parser.error("Missing required argument")
 
-    nickname = options.nick_prefix + "_zulip"
+    nickname = f"{options.nick_prefix}_zulip"
     bot = IRCBot(
         zulip_client,
         options.stream,

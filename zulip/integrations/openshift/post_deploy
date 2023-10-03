@@ -21,7 +21,7 @@ client = zulip.Client(
     email=config.ZULIP_USER,
     site=config.ZULIP_SITE,
     api_key=config.ZULIP_API_KEY,
-    client="ZulipOpenShift/" + VERSION,
+    client=f"ZulipOpenShift/{VERSION}",
 )
 
 

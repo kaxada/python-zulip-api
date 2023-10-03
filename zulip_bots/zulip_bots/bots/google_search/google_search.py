@@ -38,7 +38,14 @@ def google_search(keywords: str) -> List[Dict[str, str]]:
 
 
 def get_google_result(search_keywords: str) -> str:
-    help_message = "To use this bot, start messages with @mentioned-bot, \
+    search_keywords = search_keywords.strip()
+
+    if (
+        search_keywords == "help"
+        or not search_keywords
+        or search_keywords is None
+    ):
+        return "To use this bot, start messages with @mentioned-bot, \
                     followed by what you want to search for. If \
                     found, Zulip will return the first search result \
                     on Google.\
@@ -46,22 +53,14 @@ def get_google_result(search_keywords: str) -> str:
                     An example message that could be sent is:\
                     '@mentioned-bot zulip' or \
                     '@mentioned-bot how to create a chatbot'."
-
-    search_keywords = search_keywords.strip()
-
-    if search_keywords == "help":
-        return help_message
-    elif search_keywords == "" or search_keywords is None:
-        return help_message
-    else:
-        try:
-            results = google_search(search_keywords)
-            if len(results) == 0:
-                return "Found no results."
-            return "Found Result: [{}]({})".format(results[0]["name"], results[0]["url"])
-        except Exception as e:
-            logging.exception(str(e))
-            return f"Error: Search failed. {e}."
+    try:
+        results = google_search(search_keywords)
+        if len(results) == 0:
+            return "Found no results."
+        return f'Found Result: [{results[0]["name"]}]({results[0]["url"]})'
+    except Exception as e:
+        logging.exception(str(e))
+        return f"Error: Search failed. {e}."
 
 
 class GoogleSearchHandler:

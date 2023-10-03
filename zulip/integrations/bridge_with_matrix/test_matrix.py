@@ -95,18 +95,16 @@ class MatrixBridgeScriptTests(TestCase):
             self.assertEqual(
                 output_lines,
                 [
-                    "Wrote sample configuration to '{}' using zuliprc file '{}'".format(
-                        path, zuliprc_path
-                    )
+                    f"Wrote sample configuration to '{path}' using zuliprc file '{zuliprc_path}'"
                 ],
             )
 
             with open(path) as sample_file:
                 sample_lines = [line.strip() for line in sample_file.readlines()]
                 expected_lines = sample_config_text.split("\n")
-                expected_lines[7] = "email = {}".format(zulip_params["email"])
-                expected_lines[8] = "api_key = {}".format(zulip_params["key"])
-                expected_lines[9] = "site = {}".format(zulip_params["site"])
+                expected_lines[7] = f'email = {zulip_params["email"]}'
+                expected_lines[8] = f'api_key = {zulip_params["key"]}'
+                expected_lines[9] = f'site = {zulip_params["site"]}'
                 self.assertEqual(sample_lines, expected_lines[:-1])
 
     def test_detect_zuliprc_does_not_exist(self) -> None:
@@ -120,9 +118,7 @@ class MatrixBridgeScriptTests(TestCase):
             self.assertEqual(
                 output_lines,
                 [
-                    "Could not write sample config: Zuliprc file '{}' does not exist.".format(
-                        zuliprc_path
-                    )
+                    f"Could not write sample config: Zuliprc file '{zuliprc_path}' does not exist."
                 ],
             )
 

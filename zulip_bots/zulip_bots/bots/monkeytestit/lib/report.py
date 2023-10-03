@@ -21,7 +21,7 @@ def compose(results: Dict) -> str:
     :return: A response string containing the full report
     """
     if "error" in results:
-        return "Error: {}".format(results["error"])
+        return f'Error: {results["error"]}'
 
     response = ""
 
@@ -48,7 +48,7 @@ def print_more_info_url(results: Dict) -> str:
     :param results: A dictionary containing the results of a check
     :return: A response string containing the url info
     """
-    return "More info: {}".format(results["results_url"])
+    return f'More info: {results["results_url"]}'
 
 
 def print_test_id(results: Dict) -> str:
@@ -57,7 +57,7 @@ def print_test_id(results: Dict) -> str:
     :param results: A dictionary containing the results of a check
     :return: A response string containing the test id
     """
-    return "Test: https://monkeytest.it/test/{}".format(results["test_id"])
+    return f'Test: https://monkeytest.it/test/{results["test_id"]}'
 
 
 def print_failures_checkers(results: Dict) -> str:
@@ -98,11 +98,7 @@ def get_enabled_checkers(results: Dict) -> List:
     :return: A list containing enabled checkers
     """
     checkers = results["enabled_checkers"]
-    enabled_checkers = []
-    for checker in checkers.keys():
-        if checkers[checker]:  # == True/False
-            enabled_checkers.append(checker)
-    return enabled_checkers
+    return [checker for checker in checkers.keys() if checkers[checker]]
 
 
 def print_enabled_checkers(results: Dict) -> str:
@@ -115,7 +111,7 @@ def print_enabled_checkers(results: Dict) -> str:
     :param results: A dictionary containing the results of a check
     :return: A response string containing enabled checkers
     """
-    return "Enabled checkers: {}".format(", ".join(get_enabled_checkers(results)))
+    return f'Enabled checkers: {", ".join(get_enabled_checkers(results))}'
 
 
 def print_status(results: Dict) -> str:
@@ -126,4 +122,4 @@ def print_status(results: Dict) -> str:
     :param results: A dictionary containing the results of a check
     :return: A response string containing check status
     """
-    return "Status: {}".format(results["status"])
+    return f'Status: {results["status"]}'

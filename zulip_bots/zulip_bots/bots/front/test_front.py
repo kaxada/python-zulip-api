@@ -69,7 +69,7 @@ class TestFrontBot(BotTestCase, DefaultTests):
         body = "@bender, I thought you were supposed to be cooking for this party."
         with self.mock_config_info({"api_key": "TEST"}):
             with self.mock_http_conversation("comment"):
-                self.verify_reply("comment " + body, "Comment was sent.")
+                self.verify_reply(f"comment {body}", "Comment was sent.")
 
     def test_comment_error(self) -> None:
         body = "@bender, I thought you were supposed to be cooking for this party."

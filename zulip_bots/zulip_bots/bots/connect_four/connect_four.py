@@ -17,9 +17,9 @@ class ConnectFourMessageHandler:
                 if board[row][column] == 0:
                     board_str += ":white_circle: "
                 elif board[row][column] == 1:
-                    board_str += self.tokens[0] + " "
+                    board_str += f"{self.tokens[0]} "
                 elif board[row][column] == -1:
-                    board_str += self.tokens[1] + " "
+                    board_str += f"{self.tokens[1]} "
 
         return board_str
 
@@ -28,7 +28,7 @@ class ConnectFourMessageHandler:
 
     def alert_move_message(self, original_player: str, move_info: str) -> str:
         column_number = move_info.replace("move ", "")
-        return original_player + " moved in column " + column_number
+        return f"{original_player} moved in column {column_number}"
 
     def game_start_message(self) -> str:
         return "Type `move <column-number>` or `<column-number>` to place a token.\n\

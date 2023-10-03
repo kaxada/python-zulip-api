@@ -172,7 +172,7 @@ class JiraHandler:
         if re.match(r"^https?://", domain, re.IGNORECASE):
             self.domain_with_protocol = domain
         else:
-            self.domain_with_protocol = "https://" + domain
+            self.domain_with_protocol = f"https://{domain}"
 
         # Use the front facing URL in output
         self.display_url = config.get("display_url")
@@ -180,14 +180,13 @@ class JiraHandler:
             self.display_url = self.domain_with_protocol
 
     def jql_search(self, jql_query: str) -> str:
-        UNKNOWN_VAL = "*unknown*"
         jira_response = requests.get(
             self.domain_with_protocol
             + f"/rest/api/2/search?jql={jql_query}&fields=key,summary,status",
             headers={"Authorization": self.auth},
         ).json()
 
-        url = self.display_url + "/browse/"
+        url = f"{self.display_url}/browse/"
         errors = jira_response.get("errorMessages", [])
         results = jira_response.get("total", 0)
 
@@ -195,13 +194,12 @@ class JiraHandler:
             response = "Oh no! Jira raised an error:\n > " + ", ".join(errors)
         else:
             response = f"*Found {results} results*\n\n"
+            UNKNOWN_VAL = "*unknown*"
             for issue in jira_response.get("issues", []):
                 fields = issue.get("fields", {})
                 summary = fields.get("summary", UNKNOWN_VAL)
                 status_name = fields.get("status", {}).get("name", UNKNOWN_VAL)
-                response += "\n - {}: [{}]({}) **[{}]**".format(
-                    issue["key"], summary, url + issue["key"], status_name
-                )
+                response += f'\n - {issue["key"]}: [{summary}]({url + issue["key"]}) **[{status_name}]**'
 
         return response
 
@@ -222,11 +220,11 @@ class JiraHandler:
             key = get_match.group("issue_key")
 
             jira_response = requests.get(
-                self.domain_with_protocol + "/rest/api/2/issue/" + key,
+                f"{self.domain_with_protocol}/rest/api/2/issue/{key}",
                 headers={"Authorization": self.auth},
             ).json()
 
-            url = self.display_url + "/browse/" + key
+            url = f"{self.display_url}/browse/{key}"
             errors = jira_response.get("errorMessages", [])
             fields = jira_response.get("fields", {})
 
@@ -241,29 +239,10 @@ class JiraHandler:
             if errors:
                 response = "Oh no! Jira raised an error:\n > " + ", ".join(errors)
             else:
-                response = (
-                    "**Issue *[{}]({})*: {}**\n\n"
-                    " - Type: *{}*\n"
-                    " - Description:\n"
-                    " > {}\n"
-                    " - Creator: *{}*\n"
-                    " - Project: *{}*\n"
-                    " - Priority: *{}*\n"
-                    " - Status: *{}*\n"
-                ).format(
-                    key,
-                    url,
-                    summary,
-                    type_name,
-                    description,
-                    creator_name,
-                    project_name,
-                    priority_name,
-                    status_name,
-                )
+                response = f"**Issue *[{key}]({url})*: {summary}**\n\n - Type: *{type_name}*\n - Description:\n > {description}\n - Creator: *{creator_name}*\n - Project: *{project_name}*\n - Priority: *{priority_name}*\n - Status: *{status_name}*\n"
         elif create_match:
             jira_response = requests.post(
-                self.domain_with_protocol + "/rest/api/2/issue",
+                f"{self.domain_with_protocol}/rest/api/2/issue",
                 headers={"Authorization": self.auth},
                 json=make_create_json(
                     create_match.group("summary"),
@@ -280,17 +259,16 @@ class JiraHandler:
             jira_response_json = jira_response.json() if jira_response.text else {}
 
             key = jira_response_json.get("key", "")
-            url = self.display_url + "/browse/" + key
-            errors = list(jira_response_json.get("errors", {}).values())
-            if errors:
+            url = f"{self.display_url}/browse/{key}"
+            if errors := list(jira_response_json.get("errors", {}).values()):
                 response = "Oh no! Jira raised an error:\n > " + ", ".join(errors)
             else:
-                response = "Issue *" + key + "* is up! " + url
+                response = f"Issue *{key}* is up! {url}"
         elif edit_match and check_is_editing_something(edit_match):
             key = edit_match.group("issue_key")
 
             jira_response = requests.put(
-                self.domain_with_protocol + "/rest/api/2/issue/" + key,
+                f"{self.domain_with_protocol}/rest/api/2/issue/{key}",
                 headers={"Authorization": self.auth},
                 json=make_edit_json(
                     edit_match.group("summary"),
@@ -306,9 +284,8 @@ class JiraHandler:
 
             jira_response_json = jira_response.json() if jira_response.text else {}
 
-            url = self.display_url + "/browse/" + key
-            errors = list(jira_response_json.get("errors", {}).values())
-            if errors:
+            url = f"{self.display_url}/browse/" + key
+            if errors := list(jira_response_json.get("errors", {}).values()):
                 response = "Oh no! Jira raised an error:\n > " + ", ".join(errors)
             else:
                 response = "Issue *" + key + "* was edited! " + url
@@ -335,9 +312,9 @@ def make_jira_auth(username: str, password: str) -> str:
      - username: The Jira email address.
      - password: The Jira password.
     """
-    combo = username + ":" + password
+    combo = f"{username}:{password}"
     encoded = base64.b64encode(combo.encode("utf-8")).decode("utf-8")
-    return "Basic " + encoded
+    return f"Basic {encoded}"
 
 
 def make_create_json(
@@ -380,9 +357,7 @@ def make_create_json(
     if due_date:
         json_fields["duedate"] = due_date
 
-    json = {"fields": json_fields}
-
-    return json
+    return {"fields": json_fields}
 
 
 def make_edit_json(
@@ -428,9 +403,7 @@ def make_edit_json(
     if due_date:
         json_fields["duedate"] = due_date
 
-    json = {"fields": json_fields}
-
-    return json
+    return {"fields": json_fields}
 
 
 def check_is_editing_something(match: Any) -> bool:

@@ -28,8 +28,7 @@ def parse_args() -> argparse.Namespace:
         help="optional third party config file (e.g. ~/giphy.conf)",
     )
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main() -> None:

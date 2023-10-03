@@ -30,9 +30,7 @@ class GameOfFifteenModel:
         }
 
     def determine_game_over(self, players: List[str]) -> str:
-        if self.won(self.current_board):
-            return "current turn"
-        return ""
+        return "current turn" if self.won(self.current_board) else ""
 
     def won(self, board: Any) -> bool:
         for i in range(3):
@@ -42,9 +40,7 @@ class GameOfFifteenModel:
         return True
 
     def validate_move(self, tile: int) -> bool:
-        if tile < 1 or tile > 8:
-            return False
-        return True
+        return tile >= 1 and tile <= 8
 
     def update_board(self, board):
         self.current_board = copy.deepcopy(board)
@@ -63,16 +59,16 @@ class GameOfFifteenModel:
             if tile not in coordinates:
                 raise BadMoveException("You can only move tiles which exist in the board.")
             i, j = coordinates[tile]
-            if (j - 1) > -1 and board[i][j - 1] == 0:
+            if j > 0 and board[i][j - 1] == 0:
                 board[i][j - 1] = tile
                 board[i][j] = 0
-            elif (i - 1) > -1 and board[i - 1][j] == 0:
+            elif i > 0 and board[i - 1][j] == 0:
                 board[i - 1][j] = tile
                 board[i][j] = 0
-            elif (j + 1) < 3 and board[i][j + 1] == 0:
+            elif j < 2 and board[i][j + 1] == 0:
                 board[i][j + 1] = tile
                 board[i][j] = 0
-            elif (i + 1) < 3 and board[i + 1][j] == 0:
+            elif i < 2 and board[i + 1][j] == 0:
                 board[i + 1][j] = tile
                 board[i][j] = 0
             else:
@@ -109,7 +105,7 @@ class GameOfFifteenMessageHandler:
 
     def alert_move_message(self, original_player: str, move_info: str) -> str:
         tile = move_info.replace("move ", "")
-        return original_player + " moved " + tile
+        return f"{original_player} moved {tile}"
 
     def game_start_message(self) -> str:
         return (

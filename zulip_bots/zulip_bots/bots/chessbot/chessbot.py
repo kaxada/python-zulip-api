@@ -354,12 +354,10 @@ class ChessHandler:
              - bot_handler: The Zulip Bots bot handler object.
              - last_fen: The FEN string of the board.
         """
-        last_board = self.validate_board(message, bot_handler, last_fen)
-
-        if not last_board:
+        if last_board := self.validate_board(message, bot_handler, last_fen):
+            bot_handler.send_reply(message, make_loss_response(last_board, "resigned"))
+        else:
             return
-
-        bot_handler.send_reply(message, make_loss_response(last_board, "resigned"))
 
 
 handler_class = ChessHandler
@@ -402,12 +400,7 @@ def make_loss_response(board: chess.Board, reason: str) -> str:
 
     Returns: The loss response string.
     """
-    return ("*{}* {}. **{}** wins!\n\n" "{}").format(
-        "White" if board.turn else "Black",
-        reason,
-        "Black" if board.turn else "White",
-        make_str(board, board.turn),
-    )
+    return f'*{"White" if board.turn else "Black"}* {reason}. **{"Black" if board.turn else "White"}** wins!\n\n{make_str(board, board.turn)}'
 
 
 def make_not_legal_response(board: chess.Board, move_san: str) -> str:
@@ -419,9 +412,7 @@ def make_not_legal_response(board: chess.Board, move_san: str) -> str:
 
     Returns: The not-legal-move response string.
     """
-    return ("Sorry, the move *{}* isn't legal.\n\n" "{}" "\n\n\n" "{}").format(
-        move_san, make_str(board, board.turn), make_footer()
-    )
+    return f"Sorry, the move *{move_san}* isn't legal.\n\n{make_str(board, board.turn)}\n\n\n{make_footer()}"
 
 
 def make_copied_wrong_response() -> str:
@@ -445,14 +436,7 @@ def make_start_reponse(board: chess.Board) -> str:
 
     Returns: The starting response string.
     """
-    return (
-        "New game! The board looks like this:\n\n"
-        "{}"
-        "\n\n\n"
-        "Now it's **{}**'s turn."
-        "\n\n\n"
-        "{}"
-    ).format(make_str(board, True), "white" if board.turn else "black", make_footer())
+    return f"""New game! The board looks like this:\n\n{make_str(board, True)}\n\n\nNow it's **{"white" if board.turn else "black"}**'s turn.\n\n\n{make_footer()}"""
 
 
 def make_start_computer_reponse(board: chess.Board) -> str:
@@ -466,14 +450,7 @@ def make_start_computer_reponse(board: chess.Board) -> str:
 
     Returns: The starting response string.
     """
-    return (
-        "New game with computer! The board looks like this:\n\n"
-        "{}"
-        "\n\n\n"
-        "Now it's **{}**'s turn."
-        "\n\n\n"
-        "{}"
-    ).format(make_str(board, True), "white" if board.turn else "black", make_footer())
+    return f"""New game with computer! The board looks like this:\n\n{make_str(board, True)}\n\n\nNow it's **{"white" if board.turn else "black"}**'s turn.\n\n\n{make_footer()}"""
 
 
 def make_move_reponse(last_board: chess.Board, new_board: chess.Board, move: chess.Move) -> str:
@@ -486,24 +463,7 @@ def make_move_reponse(last_board: chess.Board, new_board: chess.Board, move: che
 
     Returns: The move response string.
     """
-    return (
-        "The board was like this:\n\n"
-        "{}"
-        "\n\n\n"
-        "Then *{}* moved *{}*:\n\n"
-        "{}"
-        "\n\n\n"
-        "Now it's **{}**'s turn."
-        "\n\n\n"
-        "{}"
-    ).format(
-        make_str(last_board, new_board.turn),
-        "white" if last_board.turn else "black",
-        last_board.san(move),
-        make_str(new_board, new_board.turn),
-        "white" if new_board.turn else "black",
-        make_footer(),
-    )
+    return f"""The board was like this:\n\n{make_str(last_board, new_board.turn)}\n\n\nThen *{"white" if last_board.turn else "black"}* moved *{last_board.san(move)}*:\n\n{make_str(new_board, new_board.turn)}\n\n\nNow it's **{"white" if new_board.turn else "black"}**'s turn.\n\n\n{make_footer()}"""
 
 
 def make_engine_failed_response() -> str:
@@ -546,9 +506,7 @@ def make_str(board: chess.Board, is_white_on_bottom: bool) -> str:
         replaced_and_guided_str if is_white_on_bottom else replaced_and_guided_str[::-1]
     )
     trimmed_str = trim_whitespace_before_newline(properly_flipped_str)
-    monospaced_str = f"```\n{trimmed_str}\n```"
-
-    return monospaced_str
+    return f"```\n{trimmed_str}\n```"
 
 
 def guide_with_numbers(board_str: str) -> str:
@@ -567,7 +525,7 @@ def guide_with_numbers(board_str: str) -> str:
 
     # The first number, 8, needs to be added first because it comes before a
     # newline. From then on, numbers are inserted at newlines.
-    row_list = list("8" + board_without_whitespace_str)
+    row_list = list(f"8{board_without_whitespace_str}")
 
     for i, char in enumerate(row_list):
         # `(i + 1) % 10 == 0` if it is the end of a row, i.e., the 10th column
@@ -590,10 +548,7 @@ def guide_with_numbers(board_str: str) -> str:
     # that begin with spaces have their spaces removed for aesthetics.
     row_str = (" ".join(row_list) + " 1").replace("\n ", "\n")
 
-    # a, b, c, d, e, f, g, and h are easy to add in.
-    row_and_col_str = "  a b c d e f g h  \n" + row_str + "\n  a b c d e f g h  "
-
-    return row_and_col_str
+    return "  a b c d e f g h  \n" + row_str + "\n  a b c d e f g h  "
 
 
 def replace_with_unicode(board_str: str) -> str:
@@ -621,9 +576,7 @@ def replace_with_unicode(board_str: str) -> str:
     replaced_str = replaced_str.replace("q", "♛")
     replaced_str = replaced_str.replace("k", "♚")
 
-    replaced_str = replaced_str.replace(".", "·")
-
-    return replaced_str
+    return replaced_str.replace(".", "·")
 
 
 def trim_whitespace_before_newline(str_to_trim: str) -> str:
